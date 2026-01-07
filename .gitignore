@@ -1,21 +1,16 @@
 ##############################
 # Build 결과물
 ##############################
-/target/
 /build/
-out/
+/build
+/out/
+/target/
 
 ##############################
 # Gradle
 ##############################
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
-
-##############################
-# Maven
-##############################
-.mvn/
-!mvn/wrapper/maven-wrapper.jar
 
 ##############################
 # IntelliJ IDEA
@@ -51,7 +46,7 @@ application-*.yml
 application-*.yaml
 application-*.properties
 
-# 단, 기본 설정은 커밋
+# 기본 설정은 커밋
 !application.yml
 !application.yaml
 !application.properties
@@ -60,20 +55,8 @@ application-*.properties
 # 로그 / 임시 파일
 ##############################
 logs/
-*.log
 tmp/
 temp/
-
-##############################
-# 테스트 결과
-##############################
-/test-output/
-/surefire-reports/
-
-##############################
-# Docker (선택)
-##############################
-docker-compose.override.yml
 
 ##############################
 # 인증 / 키
@@ -81,8 +64,3 @@ docker-compose.override.yml
 *.pem
 *.key
 *.crt
-
-##############################
-# 기타
-##############################
-node_modules/
