@@ -25,13 +25,34 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // 웹 및 유효성 검사 (REST API 구축용)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Security : 보안 및 인증 (OAuth2 + JWT)
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // 데이터베이스 (MySQL & JPA)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // 개발 도구 : 롬복
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // 애플리케이션 자동 재시작
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // JUnit 테스트 라이브러리
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 }
 
 tasks.named('test') {
