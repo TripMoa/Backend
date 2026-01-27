@@ -32,7 +32,7 @@ public class CustomOAuth2User implements OAuth2User {
     // -> 나중에 권한 시스템 만들면 여기에 추가 가능
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+        return java.util.List.of(() -> "ROLE_USER");
     }
 
     // Spring Security가 사용하는 사용자 식별자

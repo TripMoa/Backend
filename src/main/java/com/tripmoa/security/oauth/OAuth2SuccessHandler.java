@@ -1,6 +1,7 @@
 package com.tripmoa.security.oauth;
 
 import com.tripmoa.security.jwt.JwtTokenProvider;
+import com.tripmoa.user.entity.User;
 import com.tripmoa.user.service.AuthService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
