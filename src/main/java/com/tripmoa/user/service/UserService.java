@@ -8,6 +8,7 @@ import com.tripmoa.user.dto.UserUpdateRequestDto;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.enums.Gender;
 import com.tripmoa.user.enums.UserStatus;
+import com.tripmoa.user.repository.RefreshTokenRepository;
 import com.tripmoa.user.repository.SocialAccountRepository;
 import com.tripmoa.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -26,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final StyleRepository styleRepository;
     private final SocialAccountRepository socialAccountRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     // 내 정보 조회
     public UserResponseDto getMyInfo(Long userId) {
@@ -98,6 +100,17 @@ public class UserService {
     public void withdraw(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 리프레쉬 토큰 삭제 (보안 및 세션 만료)
+        refreshTokenRepository.deleteByUser(user);
+
+        // 유저 객체와 소셜 계정 간의 메모리상 연관 관계 해제
+        if (user.getSocialAccounts() != null) {
+            user.getSocialAccounts().clear();
+        }
+
+        // 소셜 계정 DB 삭제
+        socialAccountRepository.deleteByUser(user);
 
         // 유저 상태 변경 (ACTIVE -> WITHDRAWN)
         user.setStatus(UserStatus.WITHDRAWN);
