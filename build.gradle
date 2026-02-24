@@ -45,6 +45,10 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+	// Redis & WebSocket
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
     // 애플리케이션 자동 재시작
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
