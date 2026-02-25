@@ -67,7 +67,7 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**").permitAll()
 
                         // 비로그인 사용자도 볼 수 있는 데이터 (Public API)
-                        .requestMatchers("/api/travelstory/**", "/api/mate/**").permitAll()
+                        .requestMatchers("/api/travelstory/**", "/api/mate/**", "/api/v1/ocr/connect").permitAll()
 
                         // 서버 상태 확인 및 에러 페이지 : 모두 허용
                         .requestMatchers("/actuator/health", "/error", "/favicon.ico").permitAll()
