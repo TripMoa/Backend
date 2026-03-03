@@ -1,4 +1,4 @@
-package com.tripmoa.security.config;
+package com.tripmoa.global.config;
 
 import com.tripmoa.security.jwt.JwtAuthenticationEntryPoint;
 import com.tripmoa.security.jwt.JwtAuthenticationFilter;
@@ -68,6 +68,9 @@ public class SecurityConfig {
 
                         // 비로그인 사용자도 볼 수 있는 데이터 (Public API)
                         .requestMatchers("/api/travelstory/**", "/api/mate/**", "/api/v1/ocr/connect").permitAll()
+
+                        // Swagger 경로 허용
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         // 서버 상태 확인 및 에러 페이지 : 모두 허용
                         .requestMatchers("/actuator/health", "/error", "/favicon.ico").permitAll()

@@ -52,6 +52,7 @@ application-*.properties
 !application.properties
 !application-dev.properties
 !application-oauth.properties
+!application-prod.properties
 
 ##############################
 # 로그 / 임시 파일
