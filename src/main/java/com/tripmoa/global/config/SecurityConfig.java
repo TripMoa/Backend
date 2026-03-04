@@ -6,23 +6,27 @@ import com.tripmoa.security.jwt.JwtTokenProvider;
 import com.tripmoa.security.oauth.CustomOAuth2UserService;
 import com.tripmoa.security.oauth.OAuth2SuccessHandler;
 import com.tripmoa.security.princpal.CustomUserDetailsService;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
-// Spring Security 설정 클래스
+/**
+ * SecurityConfig
+ *
+ * - Spring Security 전역 설정 클래스
+ * - JWT 기반 인증 처리 (STATELESS 세션 정책)
+ * - OAuth2 소셜 로그인(Google, Kakao, Naver) 설정
+ * - 인증 없이 접근 가능한 URL 경로 설정
+ * - JWT 필터를 UsernamePasswordAuthenticationFilter 이전에 등록
+ * - 인증 실패 시 401 JSON 응답 처리
+ */
 
 @Configuration
 @EnableWebSecurity
@@ -52,7 +56,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 // CORS 설정 : 다른 도메인/포트의 접근 허용
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
 
                 // 세션 관리 정책: JWT를 사용하므로 세션을 생성하지 않음 (STATELESS)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -63,11 +67,17 @@ public class SecurityConfig {
                         // OPTIONS 메서드(CORS 정책) : 모두 허용
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // 외부 접근 차단
+                        .requestMatchers("/api/v1/ocr/**").denyAll()
+
+                        // OCR 프록시: 로그인 필요
+                        .requestMatchers(HttpMethod.POST, "/api/trips/*/expenses/ocr").authenticated()
+
                         // 소셜 로그인 관련 경로 : 인증 없이 접근 가능
                         .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**").permitAll()
 
-                        // 비로그인 사용자도 볼 수 있는 데이터 (Public API)
-                        .requestMatchers("/api/travelstory/**", "/api/mate/**", "/api/v1/ocr/connect").permitAll()
+                        // 비로그인 사용자도 볼 수 있는 데이터 (Public API) -> GET 경로만 허용으로 수정하기
+                        .requestMatchers("/api/travelstory/**", "/api/mate/**").permitAll()
 
                         // Swagger 경로 허용
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -87,19 +97,12 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
                 )
 
-                // 인증 실패 (401) JSON 응답을 커스텀하고 싶을 때
+                // 인증 실패 (401) JSON 커스텀 응답
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 
                 // 기본 로그인 폼 및 HTTP Basic 인증 비활성화
                 .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
-
-                // 인증 실패 시 401 반환
-                .exceptionHandling(e -> e
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        })
-                );
+                .httpBasic(basic -> basic.disable());
 
         // JWT 인증 필터 추가 : OAuth2 로그인 이후부터는 모든 요청에서 토큰 검증
         http.addFilterBefore(
@@ -110,35 +113,5 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     *  CORS 설정
-     * - 프론트엔드(React, Next.js 등)에서 API 서버에 접근할 수 있도록 허용하는 설정입니다.
-     * - React 개발 서버: http://localhost:3000 (또는 Vite 5173)
-     * - 배포 도메인 생기면 allowedOrigins에 추가
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        // 개발용 : 접근을 허용할 프론트엔드 도메인 (주소들)
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:5173"
-        ));
-
-        // 허용할 HTTP 메서드
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        // 모든 헤더 허용
-        config.setAllowedHeaders(List.of("*"));
-        // 프론트엔드에서 Authorization 헤더를 읽을 수 있도록 노출 (필요하면 토큰 헤더 노출)
-        config.setExposedHeaders(List.of("Authorization"));
-        // 쿠키 및 인증 정보를 포함한 요청 허용
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // 모든 API 경로(/**)에 대해 위 설정을 적용
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
 }
 
