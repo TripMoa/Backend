@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class MateExceptionHandler {
 
     @ExceptionHandler(MateException.class)
     public ResponseEntity<ErrorResponse> handleMateException(MateException e) {
