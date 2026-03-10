@@ -1,11 +1,13 @@
 package com.tripmoa.community.mate.service;
 
-import com.tripmoa.community.mate.domain.MateApplication;
 import com.tripmoa.community.mate.domain.MatePost;
 import com.tripmoa.community.mate.domain.MateDomain;
 import com.tripmoa.community.mate.dto.MateRequest;
 import com.tripmoa.community.mate.dto.MateResponse;
+import com.tripmoa.community.mate.repository.ApplicationRepository;
 import com.tripmoa.community.mate.repository.MateRepository;
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class MateService {
     private final MateRepository mateRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applyRepository;
     private final MateLikeService likeService;
     private final MateDomain domain;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -41,7 +44,7 @@ public class MateService {
     @Transactional
     public MateResponse getPostsById(Long id, Long userId) {
         MatePost matePostDetail = mateRepository.findByIdWithUser(id)
-                .orElseThrow(() -> new RuntimeException("Post NOT Found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
         String redisKey = "view:mate:" + id + ":user:" + userId;
         Boolean isFirstView = redisTemplate
                 .opsForValue()
@@ -63,6 +66,9 @@ public class MateService {
         response.setLikesCount(likeCount);
         response.setLiked(isLiked);
 
+        boolean hasApplied = applyRepository.existsByMatePostIdAndApplicantId(id, userId);
+        response.setHasApplied(hasApplied);
+
         return response;
     }
 
@@ -77,10 +83,10 @@ public class MateService {
 
     public void deletePostById(Long id, User user) {
         MatePost post = this.mateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Post NOT Found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
         if(!domain.isAuthor(post, user)) {
-            throw new IllegalStateException("작성자만 삭제할 수 있습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_POST_ACCESS);
         }
         mateRepository.deleteById(id);
     }

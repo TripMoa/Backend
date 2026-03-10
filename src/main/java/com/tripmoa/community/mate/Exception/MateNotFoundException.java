@@ -1,6 +1,9 @@
 package com.tripmoa.community.mate.Exception;
 
-public class MateNotFoundException extends MateException {
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
+
+public class MateNotFoundException extends BusinessException {
 
     public MateNotFoundException(ErrorCode errorCode) {
         super(errorCode);

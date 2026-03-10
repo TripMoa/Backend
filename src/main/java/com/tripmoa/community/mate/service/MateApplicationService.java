@@ -9,6 +9,8 @@ import com.tripmoa.community.mate.dto.MateResponse;
 import com.tripmoa.community.mate.enums.ApplyStatus;
 import com.tripmoa.community.mate.repository.ApplicationRepository;
 import com.tripmoa.community.mate.repository.MateRepository;
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -41,10 +43,10 @@ public class MateApplicationService {
                 .toList();
     }
 
-
+    @Transactional
     public ApplicationResponse createApply(Long postId, ApplicationRequest request, User applicant) {
         MatePost post = this.mateRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post NOT Found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
         MateApplication application = MateApplication.builder()
                 .matePost(post)
@@ -61,12 +63,13 @@ public class MateApplicationService {
     @Transactional
     public ApplicationResponse approveApply(Long applyPostId, User author) {
         MateApplication application = this.applyRepository.findById(applyPostId)
-                .orElseThrow(() -> new RuntimeException("Application NOT Found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if(!application.isAuthor(author)) {
-            throw new IllegalStateException("작성자만 승인할 수 있습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_APPLICATION_ACCESS);
         }
 
+        application.validatePending();
         application.approve();
         return ApplicationResponse.from(application);
     }
@@ -74,13 +77,15 @@ public class MateApplicationService {
     @Transactional
     public ApplicationResponse rejectApply(Long applyPostId, User author) {
         MateApplication application = this.applyRepository.findById(applyPostId)
-                .orElseThrow(() -> new RuntimeException("Application NOT Found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
                 if(!application.isAuthor(author)) {
-                    throw new IllegalStateException("작성자만 승인할 수 있습니다.");
+                    throw new BusinessException(ErrorCode.UNAUTHORIZED_APPLICATION_ACCESS);
                 }
 
+        application.validatePending();
         application.reject();
+
         return ApplicationResponse.from(application);
 
 

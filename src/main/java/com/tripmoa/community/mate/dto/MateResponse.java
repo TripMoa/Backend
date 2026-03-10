@@ -32,6 +32,7 @@ public class MateResponse {
     private Long viewsCount;
     private LocalDateTime createdAt;
     private boolean isLiked;
+    private boolean hasApplied;
 
     private AuthorDto author;
 
