@@ -1,6 +1,9 @@
 package com.tripmoa.community.mate.Exception;
 
-public class MateAccessDeniedException extends MateException {
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
+
+public class MateAccessDeniedException extends BusinessException {
 
     public MateAccessDeniedException(ErrorCode errorCode) {
         super(errorCode);

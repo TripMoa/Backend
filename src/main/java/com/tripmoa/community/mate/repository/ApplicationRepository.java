@@ -13,6 +13,7 @@ public interface ApplicationRepository extends JpaRepository<MateApplication, Lo
 
     @Query("SELECT a FROM MateApplication a " +
             "JOIN FETCH a.matePost p " +
+            "JOIN FETCH a.applicant u " +
             "WHERE p.user.id = :ownerId")
     List<MateApplication> findByOwnerId(@Param("ownerId") Long ownerId);
 
@@ -20,4 +21,6 @@ public interface ApplicationRepository extends JpaRepository<MateApplication, Lo
             "JOIN FETCH a.applicant " +
             "WHERE a.applicant.id = :applicantId")
     List<MateApplication> findByApplicantId(Long applicantId);
+
+    boolean existsByMatePostIdAndApplicantId(Long postId, Long applicantId);
 }

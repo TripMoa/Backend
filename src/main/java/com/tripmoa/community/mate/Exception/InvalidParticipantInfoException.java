@@ -1,6 +1,9 @@
 package com.tripmoa.community.mate.Exception;
 
-public class InvalidParticipantInfoException extends MateException{
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
+
+public class InvalidParticipantInfoException extends BusinessException {
 
     public InvalidParticipantInfoException(String message) {
         super(ErrorCode.INVALID_PARTICIPANT_INFO, message);

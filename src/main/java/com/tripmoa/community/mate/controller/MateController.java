@@ -93,7 +93,7 @@ public class MateController {
     public ResponseEntity<ApplicationResponse> applicateMatePost(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            ApplicationRequest request
+            @RequestBody ApplicationRequest request
     ) {
         User applicant = userDetails.getUser();
         ApplicationResponse apply = this.applyService.createApply(id, request, applicant);

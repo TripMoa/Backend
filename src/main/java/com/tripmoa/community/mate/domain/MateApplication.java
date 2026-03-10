@@ -1,6 +1,8 @@
 package com.tripmoa.community.mate.domain;
 
 import com.tripmoa.community.mate.enums.ApplyStatus;
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -29,9 +31,9 @@ public class MateApplication {
     @Enumerated(EnumType.STRING)
     private ApplyStatus status;
 
-    private void validatePending() {
+    public void validatePending() {
         if(this.status != ApplyStatus.PENDING) {
-            throw new IllegalArgumentException("대기 중인 신청서만 처리할 수 있습니다.");
+            throw new BusinessException(ErrorCode.ALREADY_PROCESSED);
         }
     }
 

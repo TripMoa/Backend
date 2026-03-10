@@ -15,17 +15,42 @@ import lombok.Setter;
 @Setter
 public class ApplicationResponse {
 
-    private User applicant;
-    private MatePost matePost;
+    private Long id;
+    private Long applicantId;
+    private String applicantName;
+    private String applicantEmail;
     private ApplyStatus status;
     private String content;
+    private Long matePostId;
+    private String postDestination;
+
+    private String avatar;
+    private int age;
+    private String gender;
 
     public static ApplicationResponse from(MateApplication application) {
+        User applicant = application.getApplicant();
+        MatePost post = application.getMatePost();
+
+        int age = 0;
+        if (applicant.getBirthDate() != null) {
+            age = java.time.Period.between(applicant.getBirthDate(), java.time.LocalDate.now()).getYears();
+        }
+
+        String genderName = (applicant.getGender() != null) ? applicant.getGender().name() : "미설정";
+
         return ApplicationResponse.builder()
-                .applicant(application.getApplicant())
-                .matePost(application.getMatePost())
+                .id(application.getId())
+                .applicantId(applicant.getId())
+                .applicantName(applicant.getName())
+                .applicantEmail(applicant.getEmail())
+                .matePostId(post.getId())
+                .postDestination(post.getDestination())
                 .status(application.getStatus())
                 .content(application.getContent())
+                .avatar(applicant.getAvatarEmoji())
+                .age(age)
+                .gender(genderName)
                 .build();
     }
 
