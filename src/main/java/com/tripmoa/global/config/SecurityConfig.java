@@ -85,6 +85,9 @@ public class SecurityConfig {
                         // 서버 상태 확인 및 에러 페이지 : 모두 허용
                         .requestMatchers("/actuator/health", "/error", "/favicon.ico").permitAll()
 
+                        // 업로드된 이미지 파일 : 인증 없이 접근 가능
+                        .requestMatchers("/uploads/**").permitAll()
+
                         // 그 외 모든 요청 : 인증(로그인) 필요
                         .anyRequest().authenticated()
                 )
