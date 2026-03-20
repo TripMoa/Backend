@@ -1,40 +1,54 @@
 package com.tripmoa.security.jwt;
 
-import jakarta.servlet.ServletException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
-// 인증되지 않은 사용자가 보호된 API에 접근했을 때 401 Unauthorized 응답을 JSON 형태로 내려주는 클래스
-
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    // 인증 실패 시 자동 호출되는 메서드
+    private final ObjectMapper objectMapper;
+
     @Override
     public void commence(
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException authException
-    ) throws IOException, ServletException {
+    ) throws IOException {
 
-        // HTTP 상태 코드 401 설정
+        // 이미 응답이 나간 상태면 더 쓰지 않음
+        if (response.isCommitted()) {
+            return;
+        }
+
+        // 서버 로그 기록
+        log.warn("UNAUTHORIZED: {}, path={}", authException.getMessage(), request.getRequestURI());
+
+        // 응답 설정
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
 
-        // JSON 응답 형식 지정
-        response.setContentType("application/json;charset=UTF-8");
+        // 응답 바디
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
+        body.put("error", "Unauthorized");
+        body.put("message", "인증이 필요한 서비스입니다.");
+        body.put("path", request.getRequestURI());
 
-        // 프론트에서 읽기 쉬운 에러 메시지
-        response.getWriter().write("""
-            {
-              "status": 401,
-              "message": "인증이 필요합니다. 다시 로그인해주세요."
-            }
-        """);
+        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }
-

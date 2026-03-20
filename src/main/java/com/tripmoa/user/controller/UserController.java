@@ -5,12 +5,14 @@ import com.tripmoa.user.dto.UserResponseDto;
 import com.tripmoa.user.dto.UserUpdateRequestDto;
 import com.tripmoa.user.service.AuthService;
 import com.tripmoa.user.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 // 로그인한 사용자의 내 정보 조회 / 수정 / 탈퇴 API를 담당하는 컨트롤러
 
+@Tag(name = "User", description = "사용자 정보 API")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
