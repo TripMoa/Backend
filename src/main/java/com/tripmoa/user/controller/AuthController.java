@@ -1,6 +1,7 @@
 package com.tripmoa.user.controller;
 
 import com.tripmoa.user.service.AuthService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+@Tag(name = "Auth", description = "Refresh Token 재발급 API")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

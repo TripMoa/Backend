@@ -71,10 +71,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/ocr/**").denyAll()
 
                         // OCR 프록시: 로그인 필요
-                        .requestMatchers(HttpMethod.POST, "/api/trips/*/expenses/ocr").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/trips/*/expenses/ocr/**").authenticated()
 
                         // 소셜 로그인 관련 경로 : 인증 없이 접근 가능
-                        .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**").permitAll()
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**", "/api/test/**").permitAll()
 
                         // 비로그인 사용자도 볼 수 있는 데이터 (Public API) -> GET 경로만 허용으로 수정하기
                         .requestMatchers("/api/travelstory/**", "/api/mate/**").permitAll()
