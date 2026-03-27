@@ -3,6 +3,7 @@ package com.tripmoa.user.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +25,10 @@ public class RefreshToken {
     private User user;
 
     private LocalDateTime expiryDate;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
     public RefreshToken(User user, String token, LocalDateTime expiryDate) {
         this.user = user;

@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 public class UserSanction {
 
-    // 제채 상태
+    // 제제 상태
 
     @Id
     private Long userId;

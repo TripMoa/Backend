@@ -3,6 +3,7 @@ package com.tripmoa.security.oauth;
 import com.tripmoa.user.entity.SocialAccount;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.enums.Gender;
+import com.tripmoa.user.enums.ProfileType;
 import com.tripmoa.user.enums.Provider;
 import com.tripmoa.user.enums.UserStatus;
 import com.tripmoa.user.repository.SocialAccountRepository;
@@ -71,9 +72,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // 이미지: 소셜 사진이 없으면 랜덤 아바타 할당
         if (userInfo.getImageUrl() == null || userInfo.getImageUrl().isBlank()) {
+            user.setProfileType(ProfileType.AVATAR);
             user.setAvatarEmoji("😊");
             user.setAvatarColor("#FFE5E5");
         } else {
+            user.setProfileType(ProfileType.CUSTOM);
             user.setProfileImage(userInfo.getImageUrl());
         }
 
