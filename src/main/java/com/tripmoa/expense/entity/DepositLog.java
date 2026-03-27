@@ -1,6 +1,8 @@
 package com.tripmoa.expense.entity;
 
 import com.tripmoa.expense.enums.DepositLogStatus;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

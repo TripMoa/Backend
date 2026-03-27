@@ -48,6 +48,15 @@ public enum ErrorCode {
     // Trip 소유주만 가능한 작업을 멤버가 시도한 경우
     TRIP_OWNER_REQUIRED(HttpStatus.FORBIDDEN, "TRIP_403_002", "Trip 소유주만 변경할 수 있습니다."),
 
+    // Trip에 해당하는 멤버가 없을 때
+    TRIP_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRIP_404_002", "tripId에 해당하는 여행 멤버가 없습니다."),
+
+    // 본인 멤버 닉네임이 아닌 경우 수정 불가
+    TRIP_MEMBER_FORBIDDEN(HttpStatus.FORBIDDEN, "TRIP_403_003", "본인 닉네임만 수정할 수 있습니다."),
+
+    // 같은 여행 내 멤버 닉네임 중복
+    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "TRIP_409_001", "이미 사용 중인 여행 멤버 닉네임입니다."),
+
 
     // ====== Expense 도메인 ======
 

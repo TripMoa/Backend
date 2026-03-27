@@ -1,5 +1,6 @@
 package com.tripmoa.expense.entity;
 
+import com.tripmoa.trip.entity.TripMember;
 import jakarta.persistence.*;
 import lombok.*;
 

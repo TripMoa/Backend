@@ -7,6 +7,7 @@ import com.tripmoa.expense.dto.response.OcrAutofillResponse;
 import com.tripmoa.expense.dto.response.OcrAutofillWithPreviewResponse;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.trip.service.TripPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -51,7 +52,7 @@ public class OcrService {
     private String path;
 
     private final RestTemplate restTemplate;
-    private final TripService tripService;
+    private final TripPermissionService tripPermissionService;
     private final OcrMapper ocrMapper;
     private final SettlementPreviewService settlementPreviewService;
 
@@ -83,7 +84,7 @@ public class OcrService {
             OcrAutofillRequest request
     ) {
         validateFile(file);
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Map<String, Object> raw = callOcrApi(file);
         OcrAutofillResponse autofill = ocrMapper.toAutofillResult(raw);
