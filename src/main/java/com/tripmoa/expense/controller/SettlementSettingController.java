@@ -43,63 +43,31 @@ public class SettlementSettingController {
     }
 
     /**
-     * payment mode 변경 (토글 즉시 저장)
+     * 설정 일괄 저장 (설정 적용 버튼)
      * - 권한: Trip 소유주만
      */
-    @PutMapping("/payment-mode")
-    public ResponseEntity<SettlementSettingResponse> changePaymentMode(
+    @PutMapping
+    public ResponseEntity<SettlementSettingResponse> updateAllSettings(
             @PathVariable Long tripId,
-            @Valid @RequestBody PaymentModeChangeRequest request,
+            @Valid @RequestBody SettlementUpdateAllRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(settingService.changePaymentMode(tripId, userId, request));
+        return ResponseEntity.ok(settingService.updateAll(tripId, userId, request));
     }
 
     /**
-     * split remainder policy 변경 (토글 즉시 저장)
-     * - 권한: Trip 소유주만
-     * - 정책: 모든 mode에서 변경 가능
-     * - 설명: 기존 지출 원본은 변경하지 않고, 이후 preview / 저장부터 적용
+     * 설정 금액 미리보기
+     * - DB에 저장하지 않고 계산 결과만 반환
      */
-    @PutMapping("/split-remainder-policy")
-    public ResponseEntity<SettlementSettingResponse> changeSplitRemainderPolicy(
+    @PostMapping("/preview")
+    public ResponseEntity<SettlementSummaryResponse> getPreview(
             @PathVariable Long tripId,
-            @Valid @RequestBody SplitRemainderPolicyChangeRequest request,
+            @Valid @RequestBody SettlementUpdateAllRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(settingService.changeSplitRemainderPolicy(tripId, userId, request));
-    }
-
-    /**
-     * pool balance policy 변경 (토글 즉시 저장)
-     * - 권한: Trip 소유주만
-     * - 정책: 모든 mode에서 변경 가능
-     * - 설명: 현재 mode에서 필요할 때만 summary 계산에 사용
-     */
-    @PutMapping("/pool-balance-policy")
-    public ResponseEntity<SettlementSettingResponse> changePoolBalancePolicy(
-            @PathVariable Long tripId,
-            @Valid @RequestBody PoolBalancePolicyChangeRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(settingService.changePoolBalancePolicy(tripId, userId, request));
-    }
-
-    /**
-     * budget 변경 (적용 버튼 저장)
-     * - 권한: Trip 소유주만
-     */
-    @PutMapping("/budget")
-    public ResponseEntity<SettlementSettingResponse> updateBudget(
-            @PathVariable Long tripId,
-            @Valid @RequestBody BudgetAmountUpdateRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(settingService.updateBudget(tripId, userId, request));
+        return ResponseEntity.ok(settlementSummaryService.getPreview(tripId, userId, request));
     }
 
     /**

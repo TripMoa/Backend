@@ -2,6 +2,7 @@ package com.tripmoa.expense.controller;
 
 import com.tripmoa.expense.dto.request.ExpenseCreateRequest;
 import com.tripmoa.expense.dto.request.ExpensePreviewRequest;
+import com.tripmoa.expense.dto.response.ExpenseDetailResponse;
 import com.tripmoa.expense.dto.response.ExpensePreviewResponse;
 import com.tripmoa.expense.dto.response.ExpenseResponse;
 import com.tripmoa.expense.service.ExpenseService;
@@ -14,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Expense", description = "영수증 API")
 @RestController
 @RequiredArgsConstructor
@@ -22,6 +25,25 @@ public class ExpenseController {
 
     private final ExpenseService expenseService;
     private final SettlementPreviewService settlementPreviewService;
+
+    @GetMapping
+    public ResponseEntity<List<ExpenseDetailResponse>> getExpenses(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(expenseService.getExpenses(tripId, userId));
+    }
+
+    @GetMapping("/{expenseId}")
+    public ResponseEntity<ExpenseDetailResponse> getExpense(
+            @PathVariable Long tripId,
+            @PathVariable Long expenseId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(expenseService.getExpense(tripId, expenseId, userId));
+    }
 
     @PostMapping
     public ResponseEntity<ExpenseResponse> create(

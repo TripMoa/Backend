@@ -25,6 +25,7 @@ public record ExpenseResponse(
 
         LocalDateTime paidAt,
         LocalDateTime createdAt
+
 ) {
     public static ExpenseResponse from(Expense e) {
         return new ExpenseResponse(

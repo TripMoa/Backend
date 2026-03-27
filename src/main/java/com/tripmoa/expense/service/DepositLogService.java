@@ -3,14 +3,15 @@ package com.tripmoa.expense.service;
 import com.tripmoa.expense.dto.request.DepositLogCreateRequest;
 import com.tripmoa.expense.dto.response.DepositLogResponse;
 import com.tripmoa.expense.entity.DepositLog;
-import com.tripmoa.expense.entity.Trip;
-import com.tripmoa.expense.entity.TripMember;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.expense.enums.DepositLogStatus;
 import com.tripmoa.expense.repository.DepositLogRepository;
-import com.tripmoa.expense.repository.TripMemberRepository;
-import com.tripmoa.expense.repository.TripRepository;
+import com.tripmoa.trip.repository.TripMemberRepository;
+import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.trip.service.TripPermissionService;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +19,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class DepositLogService {
 
-    private final TripService tripService;
+    private final TripPermissionService tripPermissionService;
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
     private final UserRepository userRepository;
@@ -37,7 +39,7 @@ public class DepositLogService {
      * - 특정 Trip의 멤버에게 입금 내역 기록
      */
     public DepositLogResponse create(Long tripId, Long userId, DepositLogCreateRequest request) {
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
@@ -63,6 +65,21 @@ public class DepositLogService {
     }
 
     /**
+     * 입금 로그 조회
+     * - 권한: Trip 소유주 OR Trip 멤버
+     */
+    @Transactional(readOnly = true)
+    public List<DepositLogResponse> getMemberDepositLogs(Long tripId, Long memberId, Long userId) {
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+
+        return depositLogRepository
+                .findAllByTrip_IdAndMember_IdOrderByDepositDateDescCreatedAtDesc(tripId, memberId)
+                .stream()
+                .map(DepositLogResponse::from)
+                .toList();
+    }
+
+    /**
      * 입금 로그 삭제
      * - 권한: Trip 소유주 OR 입금 로그 등록자 OR 실제 입금한 대상 멤버
      * - 승인 상태 : Trip 소유주만 가능
@@ -71,7 +88,7 @@ public class DepositLogService {
      * - 다른 trip의 입금 로그는 삭제 불가
      */
     public void delete(Long tripId, Long depositLogId, Long userId) {
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         DepositLog depositLog = depositLogRepository.findById(depositLogId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.DEPOSIT_LOG_NOT_FOUND));
@@ -100,7 +117,7 @@ public class DepositLogService {
      * - 권한: Trip 소유주만
      */
     public DepositLogResponse confirm(Long tripId, Long depositLogId, Long userId) {
-        tripService.assertOwner(tripId, userId);
+        tripPermissionService.assertOwner(tripId, userId);
 
         DepositLog depositLog = getValidDepositLog(tripId, depositLogId);
         depositLog.confirm();
@@ -113,7 +130,7 @@ public class DepositLogService {
      * - 권한: Trip 소유주만
      */
     public DepositLogResponse reject(Long tripId, Long depositLogId, Long userId) {
-        tripService.assertOwner(tripId, userId);
+        tripPermissionService.assertOwner(tripId, userId);
 
         DepositLog depositLog = getValidDepositLog(tripId, depositLogId);
         depositLog.reject();

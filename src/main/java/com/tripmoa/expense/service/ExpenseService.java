@@ -4,20 +4,22 @@ import com.tripmoa.expense.dto.request.ExpenseCreateRequest;
 import com.tripmoa.expense.dto.request.ExpenseSplitCreateRequest;
 import com.tripmoa.expense.dto.request.ExpensePreviewManualSplitRequest;
 import com.tripmoa.expense.dto.request.ExpensePreviewRequest;
+import com.tripmoa.expense.dto.response.ExpenseDetailResponse;
 import com.tripmoa.expense.dto.response.ExpensePreviewResponse;
 import com.tripmoa.expense.dto.response.ExpenseResponse;
 import com.tripmoa.expense.entity.Expense;
 import com.tripmoa.expense.entity.ExpenseSplit;
 import com.tripmoa.expense.entity.SettlementSetting;
-import com.tripmoa.expense.entity.Trip;
-import com.tripmoa.expense.entity.TripMember;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.expense.enums.PaymentMode;
 import com.tripmoa.expense.enums.SplitMode;
 import com.tripmoa.expense.repository.ExpenseRepository;
-import com.tripmoa.expense.repository.TripMemberRepository;
-import com.tripmoa.expense.repository.TripRepository;
+import com.tripmoa.trip.repository.TripMemberRepository;
+import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.trip.service.TripPermissionService;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,16 +40,37 @@ public class ExpenseService {
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
     private final ExpenseRepository expenseRepository;
-    private final TripService tripService;
+    private final TripPermissionService tripPermissionService;
     private final SettlementPreviewService settlementPreviewService;
 
+    @Transactional(readOnly = true)
+    public List<ExpenseDetailResponse> getExpenses(Long tripId, Long userId) {
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+
+        List<Expense> expenses = expenseRepository.findAllWithDetailsByTripId(tripId);
+
+        return expenses.stream()
+                .map(ExpenseDetailResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ExpenseDetailResponse getExpense(Long tripId, Long expenseId, Long userId) {
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+
+        Expense expense = expenseRepository.findDetailByTripIdAndExpenseId(tripId, expenseId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.EXPENSE_NOT_FOUND));
+
+        return ExpenseDetailResponse.from(expense);
+    }
+
     public ExpenseResponse create(Long tripId, Long userId, ExpenseCreateRequest req) {
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
 
-        SettlementSetting setting = tripService.getSettingOr404(tripId);
+        SettlementSetting setting = tripPermissionService.getSettingOr404(tripId);
 
         validateSharedByPaymentMode(setting, req.isShared());
 
@@ -85,7 +108,7 @@ public class ExpenseService {
     }
 
     public ExpenseResponse update(Long tripId, Long expenseId, Long userId, ExpenseCreateRequest req) {
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EXPENSE_NOT_FOUND));
@@ -94,7 +117,7 @@ public class ExpenseService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "해당 trip의 영수증이 아닙니다.");
         }
 
-        SettlementSetting setting = tripService.getSettingOr404(tripId);
+        SettlementSetting setting = tripPermissionService.getSettingOr404(tripId);
 
         validateSharedByPaymentMode(setting, req.isShared());
 
@@ -129,7 +152,7 @@ public class ExpenseService {
     }
 
     public void delete(Long tripId, Long expenseId, Long userId) {
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EXPENSE_NOT_FOUND));
@@ -291,6 +314,10 @@ public class ExpenseService {
         List<ExpenseSplit> result = new ArrayList<>();
 
         for (ExpenseSplitCreateRequest s : splits) {
+            if (s.amount() == null || s.amount() <= 0) {
+                continue;
+            }
+
             TripMember member = tripMemberRepository.findById(s.memberId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REQUEST, "TripMember 조회 실패"));
 

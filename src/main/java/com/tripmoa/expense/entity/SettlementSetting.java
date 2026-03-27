@@ -3,6 +3,7 @@ package com.tripmoa.expense.entity;
 import com.tripmoa.expense.enums.PaymentMode;
 import com.tripmoa.expense.enums.PoolBalancePolicy;
 import com.tripmoa.expense.enums.SplitRemainderPolicy;
+import com.tripmoa.trip.entity.Trip;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -60,12 +61,13 @@ public class SettlementSetting {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // === 메서드 ===
+
     // Trip에서 메서드로 세팅할 수 있게 setter 열어둠
-    void setTrip(Trip trip) {
+    public void setTrip(Trip trip) {
         this.trip = trip;
     }
 
-    // === 메서드 ===
     @PrePersist
     public void prePersist() {
         if (paymentMode == null) paymentMode = PaymentMode.HYBRID;
@@ -85,5 +87,13 @@ public class SettlementSetting {
 
     public void changePoolBalancePolicy(PoolBalancePolicy policy) {
         this.poolBalancePolicy = policy;
+    }
+
+    public void updateAll(PaymentMode paymentMode, SplitRemainderPolicy splitRemainderPolicy,
+                          PoolBalancePolicy poolBalancePolicy, int budgetAmount) {
+        this.paymentMode = paymentMode;
+        this.splitRemainderPolicy = splitRemainderPolicy;
+        this.poolBalancePolicy = poolBalancePolicy;
+        this.budgetAmount = budgetAmount;
     }
 }
