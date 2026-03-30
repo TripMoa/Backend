@@ -18,6 +18,7 @@ public class UserUpdateRequestDto {
     public String mbti;
     public List<String> travelStyles;
     public String profileImage;
+    public String profileType;
     public String avatarEmoji;
     public String avatarColor;
 }

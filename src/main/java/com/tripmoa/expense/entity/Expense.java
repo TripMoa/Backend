@@ -3,6 +3,8 @@ package com.tripmoa.expense.entity;
 import com.tripmoa.expense.enums.ExpenseCategory;
 import com.tripmoa.expense.enums.PayMethod;
 import com.tripmoa.expense.enums.SplitMode;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

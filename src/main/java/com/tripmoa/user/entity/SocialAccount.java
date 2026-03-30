@@ -4,6 +4,7 @@ import com.tripmoa.user.enums.Provider;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -31,6 +32,8 @@ public class SocialAccount {
     private String providerUserId;
 
     private Boolean connected = true;
+
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
 }

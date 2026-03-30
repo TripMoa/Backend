@@ -1,10 +1,11 @@
-package com.tripmoa.expense.service;
+package com.tripmoa.trip.service;
 
 import com.tripmoa.expense.entity.SettlementSetting;
-import com.tripmoa.expense.entity.Trip;
+import com.tripmoa.trip.entity.Trip;
 import com.tripmoa.expense.repository.SettlementSettingRepository;
-import com.tripmoa.expense.repository.TripMemberRepository;
-import com.tripmoa.expense.repository.TripRepository;
+import com.tripmoa.trip.enums.TripStatus;
+import com.tripmoa.trip.repository.TripMemberRepository;
+import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class TripService {
+public class TripPermissionService {
 
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
@@ -25,7 +26,7 @@ public class TripService {
 
     // Trip이 존재하는지 확인하고 없으면 바로 404 에러 발생
     public Trip getTripOr404(Long tripId) {
-        return tripRepository.findById(tripId)
+        return tripRepository.findByIdAndStatus(tripId, TripStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
     }
 

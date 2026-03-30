@@ -5,13 +5,14 @@ import com.tripmoa.expense.dto.request.ExpensePreviewRequest;
 import com.tripmoa.expense.dto.response.ExpensePreviewResponse;
 import com.tripmoa.expense.dto.response.ExpensePreviewSplitResponse;
 import com.tripmoa.expense.entity.SettlementSetting;
-import com.tripmoa.expense.entity.TripMember;
+import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.expense.enums.PaymentMode;
 import com.tripmoa.expense.enums.SplitMode;
 import com.tripmoa.expense.enums.SplitRemainderPolicy;
-import com.tripmoa.expense.repository.TripMemberRepository;
+import com.tripmoa.trip.repository.TripMemberRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.trip.service.TripPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,13 +30,13 @@ public class SettlementPreviewService {
 
     private static final SplitRemainderPolicy DEFAULT_SPLIT_POLICY = SplitRemainderPolicy.TO_PAYER;
 
-    private final TripService tripService;
+    private final TripPermissionService tripPermissionService;
     private final TripMemberRepository tripMemberRepository;
 
     public ExpensePreviewResponse preview(Long tripId, Long userId, ExpensePreviewRequest request) {
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
-        SettlementSetting setting = tripService.getSettingOr404(tripId);
+        SettlementSetting setting = tripPermissionService.getSettingOr404(tripId);
 
         // payer 검증
         TripMember payer = getTripMemberOrThrow(tripId, request.payerMemberId());

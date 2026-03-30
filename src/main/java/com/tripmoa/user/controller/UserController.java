@@ -1,6 +1,8 @@
 package com.tripmoa.user.controller;
 
 import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.user.dto.CheckEmailRequest;
+import com.tripmoa.user.dto.CheckEmailResponse;
 import com.tripmoa.user.dto.UserResponseDto;
 import com.tripmoa.user.dto.UserUpdateRequestDto;
 import com.tripmoa.user.service.AuthService;
@@ -33,6 +35,12 @@ public class UserController {
     @GetMapping("/users/me")
     public UserResponseDto me(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return userService.getMyInfo(userDetails.getUser().getId());
+    }
+
+    // 가입 확인 Post
+    @PostMapping("/users/check-email")
+    public CheckEmailResponse checkEmail(@RequestBody CheckEmailRequest request) {
+        return userService.checkEmail(request.getEmail());
     }
 
     // 전체 프로필 수정 Patch

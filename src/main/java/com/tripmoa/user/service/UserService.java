@@ -3,10 +3,12 @@ package com.tripmoa.user.service;
 import com.tripmoa.style.Style;
 import com.tripmoa.style.StyleRepository;
 import com.tripmoa.style.UserStyle;
+import com.tripmoa.user.dto.CheckEmailResponse;
 import com.tripmoa.user.dto.UserResponseDto;
 import com.tripmoa.user.dto.UserUpdateRequestDto;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.enums.Gender;
+import com.tripmoa.user.enums.ProfileType;
 import com.tripmoa.user.enums.UserStatus;
 import com.tripmoa.user.repository.RefreshTokenRepository;
 import com.tripmoa.user.repository.SocialAccountRepository;
@@ -38,48 +40,70 @@ public class UserService {
         return UserResponseDto.from(user);
     }
 
+    // 가입 확인
+    public CheckEmailResponse checkEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(user -> CheckEmailResponse.builder()
+                        .exists(true)
+                        .userId(user.getId())
+                        .email(user.getEmail())
+                        .name(user.getName())
+                        .build())
+                .orElse(CheckEmailResponse.builder()
+                        .exists(false)
+                        .email(email)
+                        .build());
+    }
+
     // UserService 내 업데이트 로직 예시
     @Transactional
     public void updateUserInfo(Long userId, UserUpdateRequestDto dto) {
         User user = userRepository.findById(userId).orElseThrow();
 
-        // 닉네임은 언제든 수정 가능 (필수)
+        // 기본 정보 업데이트
         user.setNickname(dto.getNickname());
-
         user.setNotificationEmail(dto.getNotificationEmail());
+        user.setMbti(dto.getMbti());
 
-        // 이름: 잠겨있지 않을 때만 수정하고, 수정 시 잠금 처리
+        // 잠금 필드 (이름, 성별, 생일)
         if (!user.isNameLocked() && dto.getName() != null) {
             user.setName(dto.getName());
             user.setNameLocked(true);
         }
 
-        // 성별: 잠겨있지 않을 때만 수정하고 잠금
         if (!user.isGenderLocked() && dto.getGender() != null) {
             user.setGender(Gender.valueOf(dto.getGender().toUpperCase()));
             user.setGenderLocked(true);
         }
 
-        // 생년월일: 잠겨있지 않을 때만 수정하고 잠금
         if (!user.isBirthLocked() && dto.getBirthDate() != null && !dto.getBirthDate().isBlank()) {
             try {
                 user.setBirthDate(LocalDate.parse(dto.getBirthDate()));
                 user.setBirthLocked(true);
             } catch (Exception e) {
-                // 잘못된 날짜 형식일 경우 예외 처리
+                throw new IllegalArgumentException("생년월일 형식이 올바르지 않습니다. (YYYY-MM-DD)");
             }
         }
 
-        // MBTI 등은 잠금 없이 계속 수정 가능
-        user.setMbti(dto.getMbti());
+        // 프로필 이미지
+        if (dto.getProfileType() != null) {
+            ProfileType targetType = ProfileType.valueOf(dto.getProfileType().toUpperCase());
+            user.setProfileType(targetType);
+
+            if (targetType == ProfileType.CUSTOM) {
+                if (dto.getProfileImage() != null && !dto.getProfileImage().equals(user.getProfileImage())) {
+                    user.setProfileImage(dto.getProfileImage());
+                }
+            } else if (targetType == ProfileType.AVATAR) {
+                if (dto.getAvatarEmoji() != null) user.setAvatarEmoji(dto.getAvatarEmoji());
+                if (dto.getAvatarColor() != null) user.setAvatarColor(dto.getAvatarColor());
+                user.setProfileImage(null);
+            }
+        }
 
         // 기존 스타일 삭제
         user.getTravelStyles().clear();
         userRepository.saveAndFlush(user);
-
-        user.setProfileImage(dto.getProfileImage());
-        user.setAvatarEmoji(dto.getAvatarEmoji());
-        user.setAvatarColor(dto.getAvatarColor());
 
         // 비워진 상태에서 새로운 스타일 추가
         if (dto.getTravelStyles() != null) {
@@ -90,7 +114,7 @@ public class UserService {
                 UserStyle userStyle = new UserStyle();
                 userStyle.setUser(user);
                 userStyle.setStyle(style);
-                user.getTravelStyles().add(userStyle); // User 엔티티의 리스트에 추가
+                user.getTravelStyles().add(userStyle);
             }
         }
     }
@@ -126,11 +150,6 @@ public class UserService {
         user.setProfileImage(null);
         user.setAvatarEmoji(null);
         user.setAvatarColor(null);
-
-        // 소셜 계정 연결 해제
-        // social_accounts 테이블에서 해당 유저의 레코드를 삭제하거나 connected를 false로 변경합니다.
-        // 삭제를 해야 나중에 동일한 소셜 계정으로 '새 가입'이 가능해집니다.
-        socialAccountRepository.deleteByUser(user);
 
         userRepository.save(user);
     }

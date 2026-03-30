@@ -5,10 +5,9 @@ import com.tripmoa.expense.dto.response.OcrAutofillWithPreviewResponse;
 import com.tripmoa.expense.dto.response.OcrInitialResponse;
 import com.tripmoa.expense.service.OcrMapper;
 import com.tripmoa.expense.service.OcrService;
-import com.tripmoa.expense.service.TripService;
+import com.tripmoa.trip.service.TripPermissionService;
 import com.tripmoa.security.princpal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -31,7 +30,7 @@ public class OcrController {
 
     private final OcrService ocrService;
     private final OcrMapper ocrMapper;
-    private final TripService tripService;
+    private final TripPermissionService tripPermissionService;
 
     /**
      * OCR 자동채움 (프론트용)
@@ -47,7 +46,7 @@ public class OcrController {
         Long userId = userDetails.getUser().getId();
 
         ocrService.validateFile(file);
-        tripService.assertOwnerOrMember(tripId, userId);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Map<String, Object> raw = ocrService.callOcrApi(file);
         OcrInitialResponse dto = ocrMapper.toAutofillResponse(raw);

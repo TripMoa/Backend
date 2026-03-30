@@ -1,7 +1,8 @@
-package com.tripmoa.expense.entity;
+package com.tripmoa.trip.entity;
 
-import com.tripmoa.expense.enums.TripStatus;
-import com.tripmoa.expense.enums.TripVisibility;
+import com.tripmoa.expense.entity.SettlementSetting;
+import com.tripmoa.trip.enums.TripStatus;
+import com.tripmoa.trip.enums.TripVisibility;
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(
@@ -20,7 +22,8 @@ import java.util.List;
                 @Index(name = "idx_trip_owner", columnList = "owner_user_id"),
                 @Index(name = "idx_trip_status", columnList = "status"),
                 @Index(name = "idx_trip_visibility", columnList = "visibility"),
-                @Index(name = "idx_trip_dates", columnList = "trip_start_date, trip_end_date")
+                @Index(name = "idx_trip_dates", columnList = "trip_start_date, trip_end_date"),
+                @Index(name = "uk_trip_invite_code", columnList = "invite_code", unique = true)
         }
 )
 @Getter
@@ -46,6 +49,9 @@ public class Trip {
 
     @Column(name = "trip_end_date", nullable = false)
     private LocalDate tripEndDate;
+
+    @Column(name = "invite_code", nullable = false, unique = true, length = 20)
+    private String inviteCode;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
@@ -77,8 +83,15 @@ public class Trip {
     // === 메서드 ===
     @PrePersist
     public void prePersist() {
-        if (status == null) status = TripStatus.ACTIVE;
-        if (visibility == null) visibility = TripVisibility.PRIVATE;
+        // 생성 시점에 고유 코드 자동 생성
+        if (this.inviteCode == null) {
+            this.inviteCode = UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+        }
+    }
+
+    // 초대 링크를 반환하는 편의 메서드
+    public String getInviteLink(String baseUrl) {
+        return String.format("%s/trips/join?code=%s", baseUrl, this.inviteCode);
     }
 
     public void attachSettlementSetting(SettlementSetting setting) {
@@ -94,5 +107,19 @@ public class Trip {
     public void removeMember(TripMember member) {
         members.remove(member);
         member.setTrip(null);
+    }
+
+    public void updateBasicInfo(String title, LocalDate tripStartDate, LocalDate tripEndDate) {
+        this.title = title;
+        this.tripStartDate = tripStartDate;
+        this.tripEndDate = tripEndDate;
+    }
+
+    public void updateVisibility(TripVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    public void archive() {
+        this.status = TripStatus.ARCHIVED;
     }
 }

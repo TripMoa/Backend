@@ -22,11 +22,12 @@ public class UserResponseDto {
     public String gender;
     public String mbti;
     public String profileImage;
+    public String profileType;
     public String avatarEmoji;
     public String avatarColor;
     public LocalDate birthDate;
 
-    // 추가: 잠금 상태 필드
+    // 잠금 상태 필드
     public boolean nameLocked;
     public boolean genderLocked;
     public boolean birthLocked;
@@ -52,6 +53,7 @@ public class UserResponseDto {
                 user.getGender() != null ? user.getGender().name() : null,
                 user.getMbti(),
                 user.getProfileImage(),
+                user.getProfileType().name(),
                 user.getAvatarEmoji(),
                 user.getAvatarColor(),
                 user.getBirthDate(),

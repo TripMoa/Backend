@@ -21,7 +21,7 @@ public class UserNotificationSettings {
     private User user;
 
     private Boolean tripAlert=true;
-    private Boolean arketingAlert=false;
+    private Boolean marketingAlert = false;
     private Boolean emailAlert=true;
 
 }

@@ -10,10 +10,12 @@ public record SettlementSummaryResponse(
         Long tripId,
         PaymentMode paymentMode,
         Integer budgetAmount,
-        Integer totalSpent,
+        int totalSpent,                                                 // 공동 지출 합계
+        int personalTotal,                                              // 개인 지출 합계
         Integer remainingAmount,
         List<SummaryCategorySpendResponse> categorySpend,
         List<SummarySettlementMemberResponse> settlement,
-        List<SummaryDepositStatusResponse> status
+        List<SummaryDepositStatusResponse> status,
+        List<SettlementTransactionResponse> transactions
 ) {
 }

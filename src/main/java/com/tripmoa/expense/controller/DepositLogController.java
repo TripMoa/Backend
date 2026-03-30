@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Deposit", description = "입금 로그 API")
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +33,20 @@ public class DepositLogController {
     ) {
         Long userId = userDetails.getUser().getId();
         return ResponseEntity.ok(depositLogService.create(tripId, userId, request));
+    }
+
+    /**
+     * 입금 로그 조회
+     * - 권한: Trip 소유주 OR Trip 멤버
+     */
+    @GetMapping("/members/{memberId}")
+    public ResponseEntity<List<DepositLogResponse>> getMemberDepositLogs(
+            @PathVariable Long tripId,
+            @PathVariable Long memberId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(depositLogService.getMemberDepositLogs(tripId, memberId, userId));
     }
 
     /**

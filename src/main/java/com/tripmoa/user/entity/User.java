@@ -2,10 +2,13 @@ package com.tripmoa.user.entity;
 
 import com.tripmoa.style.UserStyle;
 import com.tripmoa.user.enums.Gender;
+import com.tripmoa.user.enums.ProfileType;
 import com.tripmoa.user.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,7 +33,7 @@ public class User {
     private String name;
     private String email;
 
-    @Column(length = 100)
+    @Column(length = 255)
     private String notificationEmail;
 
     @Enumerated(EnumType.STRING)
@@ -59,6 +62,9 @@ public class User {
     @Column(columnDefinition = "MEDIUMTEXT")
     private String profileImage;
 
+    @Enumerated(EnumType.STRING)
+    private ProfileType profileType = ProfileType.AVATAR;
+
     private String avatarEmoji;
     private String avatarColor;
 
@@ -67,8 +73,16 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.ACTIVE;
 
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    // === 메서드 ===
+    private String resolveNickname(User user) {
+        return user.getName();
+    }
 }
 

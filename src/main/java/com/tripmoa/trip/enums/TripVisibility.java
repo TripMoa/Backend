@@ -1,4 +1,4 @@
-package com.tripmoa.expense.enums;
+package com.tripmoa.trip.enums;
 
 // 여행 계획 공개 여부
 public enum TripVisibility {

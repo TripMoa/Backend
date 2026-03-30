@@ -1,4 +1,4 @@
-package com.tripmoa.expense.entity;
+package com.tripmoa.trip.entity;
 
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
@@ -55,11 +55,7 @@ public class TripMember {
     }
 
     // === 메서드 ===
-    public void changeNickname(String nickname) {
+    public void updateNickname(String nickname) {
         this.nickname = nickname;
-    }
-
-    public void changeSortOrder(int sortOrder) {
-        this.sortOrder = sortOrder;
     }
 }
