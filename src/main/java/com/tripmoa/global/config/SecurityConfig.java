@@ -88,6 +88,9 @@ public class SecurityConfig {
                         // 업로드된 이미지 파일 : 인증 없이 접근 가능
                         .requestMatchers("/uploads/**").permitAll()
 
+                        // 웹소켓
+                        .requestMatchers("/ws/**").permitAll()
+
                         // 그 외 모든 요청 : 인증(로그인) 필요
                         .anyRequest().authenticated()
                 )
