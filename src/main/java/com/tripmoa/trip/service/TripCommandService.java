@@ -7,6 +7,13 @@ import com.tripmoa.expense.enums.SplitRemainderPolicy;
 import com.tripmoa.expense.repository.SettlementSettingRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.notice.entity.NoticeGroup;
+import com.tripmoa.notice.entity.NoticeItem;
+import com.tripmoa.notice.entity.NoticeTag;
+import com.tripmoa.notice.enums.NoticeColor;
+import com.tripmoa.notice.repository.NoticeGroupRepository;
+import com.tripmoa.notice.repository.NoticeItemRepository;
+import com.tripmoa.notice.repository.NoticeTagRepository;
 import com.tripmoa.trip.dto.*;
 import com.tripmoa.trip.entity.Trip;
 import com.tripmoa.trip.entity.TripMember;
@@ -33,6 +40,9 @@ public class TripCommandService {
     private final TripPermissionService tripPermissionService;
     private final UserRepository userRepository;
     private final SettlementSettingRepository settlementSettingRepository;
+    private final NoticeGroupRepository noticeGroupRepository;
+    private final NoticeItemRepository noticeItemRepository;
+    private final NoticeTagRepository noticeTagRepository;
 
     // 여행 생성
     public TripDetailResponse createTrip(Long userId, TripCreateRequest request) {
@@ -83,6 +93,97 @@ public class TripCommandService {
                 .build();
 
         Trip savedTrip = tripRepository.save(trip);
+
+        // 기본 공지 그룹 생성
+        NoticeGroup defaultNoticeGroup = NoticeGroup.createDefault(savedTrip);
+        noticeGroupRepository.save(defaultNoticeGroup);
+
+        // 기본 공지 4개 생성
+        List<NoticeItem> defaultNoticeItems = List.of(
+                NoticeItem.create(
+                        defaultNoticeGroup,
+                        owner,
+                        NoticeColor.YELLOW,
+                        "준비물",
+                        "여행 준비물 체크리스트",
+                        """
+                        여행 전 필요한 준비물을 미리 확인해주세요.
+        
+                        - 신분증 / 여권
+                        - 충전기 / 보조배터리
+                        - 세면도구 / 개인 상비약
+                        - 옷 / 우산 / 계절용품
+                        - 현금 / 카드 / 교통수단 예매 확인
+        
+                        출발 전날 한 번 더 체크해주세요.
+                        """
+                ),
+                NoticeItem.create(
+                        defaultNoticeGroup,
+                        owner,
+                        NoticeColor.BLUE,
+                        "연락처",
+                        "비상 연락처",
+                        """
+                        긴급 상황에 대비해 주요 연락처를 정리해주세요.
+        
+                        - 숙소 연락처
+                        - 병원 / 약국
+                        - 경찰서 / 긴급 신고 번호
+                        - 차량 렌트 / 보험사
+                        - 여행 멤버 비상 연락처
+        
+                        필요한 번호는 여행 전 미리 공유해주세요.
+                        """
+                ),
+                NoticeItem.create(
+                        defaultNoticeGroup,
+                        owner,
+                        NoticeColor.GREEN,
+                        "예약",
+                        "일정 및 예약 유의사항",
+                        """
+                        예약 및 일정 변경 사항은 모든 멤버가 확인할 수 있게 공유해주세요.
+        
+                        - 숙소 체크인 / 체크아웃 시간 확인
+                        - 기차 / 버스 / 항공권 시간 재확인
+                        - 입장권 / 예약 바우처 보관
+                        - 지각 방지를 위해 출발 시간 10분 전 도착 권장
+        
+                        일정 변경 시 공지사항에 바로 남겨주세요.
+                        """
+                ),
+                NoticeItem.create(
+                        defaultNoticeGroup,
+                        owner,
+                        NoticeColor.WHITE,
+                        "안전",
+                        "안전 주의사항",
+                        """
+                        안전한 여행을 위해 아래 내용을 확인해주세요.
+        
+                        - 늦은 시간 단독 이동 주의
+                        - 귀중품 분실 주의
+                        - 낯선 장소에서는 위치 공유 권장
+                        - 무리한 일정 진행 금지
+                        - 비상 상황 시 바로 연락 후 함께 대응
+        
+                        모두가 안전하게 여행할 수 있도록 서로 확인해주세요.
+                        """
+                )
+        );
+
+        noticeItemRepository.saveAll(defaultNoticeItems);
+
+        // 기본 태그 생성
+        List<String> defaultTags = List.of("준비물", "연락처", "예약", "안전");
+
+        List<NoticeTag> noticeTags = defaultTags.stream()
+                .distinct()
+                .map(tag -> NoticeTag.create(savedTrip, tag))
+                .toList();
+
+        noticeTagRepository.saveAll(noticeTags);
 
         // 정산 설정 기본값 생성
         SettlementSetting setting = SettlementSetting.builder()
