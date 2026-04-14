@@ -7,13 +7,15 @@ import com.tripmoa.expense.dto.response.ExpensePreviewResponse;
 import com.tripmoa.expense.dto.response.ExpenseResponse;
 import com.tripmoa.expense.service.ExpenseService;
 import com.tripmoa.expense.service.SettlementPreviewService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -48,22 +50,24 @@ public class ExpenseController {
     @PostMapping
     public ResponseEntity<ExpenseResponse> create(
             @PathVariable Long tripId,
-            @Valid @RequestBody ExpenseCreateRequest request,
+            @Valid @RequestPart("request") ExpenseCreateRequest request,
+            @RequestPart(value = "receiptImage", required = false) MultipartFile receiptImage,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(expenseService.create(tripId, userId, request));
+        return ResponseEntity.ok(expenseService.create(tripId, userId, request, receiptImage));
     }
 
-    @PutMapping("/{expenseId}")
+    @PutMapping(value = "/{expenseId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ExpenseResponse> update(
             @PathVariable Long tripId,
             @PathVariable Long expenseId,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody ExpenseCreateRequest req
+            @Valid @RequestPart("request") ExpenseCreateRequest request,
+            @RequestPart(value = "receiptImage", required = false) MultipartFile receiptImage
     ) {
         Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(expenseService.update(tripId, expenseId, userId, req));
+        return ResponseEntity.ok(expenseService.update(tripId, expenseId, userId, request, receiptImage));
     }
 
     @DeleteMapping("/{expenseId}")

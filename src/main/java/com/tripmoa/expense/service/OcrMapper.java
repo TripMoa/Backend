@@ -98,21 +98,10 @@ public class OcrMapper {
                 base.storeName(),
                 base.menuName(),                       // menuName → itemMemo
                 ExpenseCategory.ETC,                   // 고정
-                mapPayMethod(base.paymentMethod()),    // 간단 매핑
+                PayMethod.fromText(base.paymentMethod()),
                 base.dateTime(),                       // dateTime → paidAt
                 base.totalAmount()
         );
     }
 
-    // PayMethod 간단 매핑
-    private PayMethod mapPayMethod(String paymentMethodText) {
-        if (paymentMethodText == null) return PayMethod.CARD;
-
-        String t = paymentMethodText.toLowerCase();
-        if (t.contains("현금")) return PayMethod.CASH;
-        if (t.contains("qr") || t.contains("페이") || t.contains("pay")) return PayMethod.QR;
-        if (t.contains("카드") || t.contains("credit") || t.contains("check")) return PayMethod.CARD;
-
-        return PayMethod.CARD;
-    }
 }

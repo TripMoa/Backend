@@ -42,8 +42,6 @@ public record ExpenseCreateRequest(
         SplitMode splitMode,
 
         @Valid
-        List<ExpenseSplitCreateRequest> splits,
+        List<ExpenseSplitCreateRequest> splits
 
-        String receiptUrl,
-        String receiptFileName
 ) {}

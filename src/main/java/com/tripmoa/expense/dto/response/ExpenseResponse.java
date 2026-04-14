@@ -23,6 +23,9 @@ public record ExpenseResponse(
         Boolean isShared,
         SplitMode splitMode,
 
+        String receiptUrl,
+        String receiptFileName,
+
         LocalDateTime paidAt,
         LocalDateTime createdAt
 
@@ -39,6 +42,8 @@ public record ExpenseResponse(
                 e.getPayMethod(),
                 e.isShared(),
                 e.getSplitMode(),
+                e.getReceiptUrl(),
+                e.getReceiptFileName(),
                 e.getPaidAt(),
                 e.getCreatedAt()
         );
