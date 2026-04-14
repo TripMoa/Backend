@@ -55,7 +55,6 @@ public class UserService {
                         .build());
     }
 
-    // UserService 내 업데이트 로직 예시
     @Transactional
     public void updateUserInfo(Long userId, UserUpdateRequestDto dto) {
         User user = userRepository.findById(userId).orElseThrow();
