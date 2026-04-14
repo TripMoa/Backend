@@ -1,11 +1,10 @@
 package com.tripmoa.community.mate.controller;
 
-import com.tripmoa.community.mate.domain.MatePost;
 import com.tripmoa.community.mate.dto.*;
 import com.tripmoa.community.mate.service.MateApplicationService;
 import com.tripmoa.community.mate.service.MateLikeService;
 import com.tripmoa.community.mate.service.MateService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 //import org.springframework.security.access.prepost.PreAuthorize;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController

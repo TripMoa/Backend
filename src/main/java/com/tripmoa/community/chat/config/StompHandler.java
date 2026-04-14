@@ -1,8 +1,8 @@
 package com.tripmoa.community.chat.config;
 
 import com.tripmoa.security.jwt.JwtTokenProvider;
-import com.tripmoa.security.princpal.CustomUserDetails;
-import com.tripmoa.security.princpal.CustomUserDetailsService;
+import com.tripmoa.security.principal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;

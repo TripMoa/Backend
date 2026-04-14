@@ -1,30 +1,34 @@
 package com.tripmoa.expense.service;
 
 import com.tripmoa.expense.dto.request.ExpenseCreateRequest;
-import com.tripmoa.expense.dto.request.ExpenseSplitCreateRequest;
 import com.tripmoa.expense.dto.request.ExpensePreviewManualSplitRequest;
 import com.tripmoa.expense.dto.request.ExpensePreviewRequest;
+import com.tripmoa.expense.dto.request.ExpenseSplitCreateRequest;
 import com.tripmoa.expense.dto.response.ExpenseDetailResponse;
 import com.tripmoa.expense.dto.response.ExpensePreviewResponse;
 import com.tripmoa.expense.dto.response.ExpenseResponse;
 import com.tripmoa.expense.entity.Expense;
 import com.tripmoa.expense.entity.ExpenseSplit;
 import com.tripmoa.expense.entity.SettlementSetting;
-import com.tripmoa.trip.entity.Trip;
-import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.expense.enums.PaymentMode;
 import com.tripmoa.expense.enums.SplitMode;
 import com.tripmoa.expense.repository.ExpenseRepository;
-import com.tripmoa.trip.repository.TripMemberRepository;
-import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.global.file.FileDirectories;
+import com.tripmoa.global.file.FileStorageService;
+import com.tripmoa.global.file.StoredFileInfo;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.entity.TripMember;
+import com.tripmoa.trip.repository.TripMemberRepository;
+import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.trip.service.TripPermissionService;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +46,7 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final TripPermissionService tripPermissionService;
     private final SettlementPreviewService settlementPreviewService;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public List<ExpenseDetailResponse> getExpenses(Long tripId, Long userId) {
@@ -64,14 +69,13 @@ public class ExpenseService {
         return ExpenseDetailResponse.from(expense);
     }
 
-    public ExpenseResponse create(Long tripId, Long userId, ExpenseCreateRequest req) {
+    public ExpenseResponse create(Long tripId, Long userId, ExpenseCreateRequest req, MultipartFile receiptImage) {
         tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
 
         SettlementSetting setting = tripPermissionService.getSettingOr404(tripId);
-
         validateSharedByPaymentMode(setting, req.isShared());
 
         User user = userRepository.findById(userId)
@@ -79,8 +83,12 @@ public class ExpenseService {
 
         TripMember payer = getValidPayer(tripId, req.payerMemberId());
         LocalDateTime paidAt = parsePaidAt(req.paidAt());
-
         List<ExpenseSplitCreateRequest> finalSplits = resolveFinalSplits(tripId, userId, req, payer);
+
+        StoredFileInfo storedFile = null;
+        if (receiptImage != null && !receiptImage.isEmpty()) {
+            storedFile = fileStorageService.store(receiptImage, FileDirectories.EXPENSE);
+        }
 
         Expense expense = Expense.builder()
                 .trip(trip)
@@ -94,8 +102,8 @@ public class ExpenseService {
                 .shared(req.isShared())
                 .category(req.category())
                 .payMethod(req.payMethod())
-                .receiptUrl(req.receiptUrl())
-                .receiptFileName(req.receiptFileName())
+                .receiptUrl(storedFile == null ? null : storedFile.fileUrl())
+                .receiptFileName(storedFile == null ? null : storedFile.originalFileName())
                 .splitMode(req.splitMode())
                 .build();
 
@@ -107,7 +115,7 @@ public class ExpenseService {
         return ExpenseResponse.from(saved);
     }
 
-    public ExpenseResponse update(Long tripId, Long expenseId, Long userId, ExpenseCreateRequest req) {
+    public ExpenseResponse update(Long tripId, Long expenseId, Long userId, ExpenseCreateRequest req, MultipartFile receiptImage) {
         tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Expense expense = expenseRepository.findById(expenseId)
@@ -118,13 +126,24 @@ public class ExpenseService {
         }
 
         SettlementSetting setting = tripPermissionService.getSettingOr404(tripId);
-
         validateSharedByPaymentMode(setting, req.isShared());
 
         TripMember payer = getValidPayer(tripId, req.payerMemberId());
         LocalDateTime paidAt = parsePaidAt(req.paidAt());
-
         List<ExpenseSplitCreateRequest> finalSplits = resolveFinalSplits(tripId, userId, req, payer);
+
+        String receiptUrl = expense.getReceiptUrl();
+        String receiptFileName = expense.getReceiptFileName();
+
+        if (receiptImage != null && !receiptImage.isEmpty()) {
+            if (expense.getReceiptUrl() != null && !expense.getReceiptUrl().isBlank()) {
+                fileStorageService.deleteFile(expense.getReceiptUrl());
+            }
+
+            StoredFileInfo storedFile = fileStorageService.store(receiptImage, FileDirectories.EXPENSE);
+            receiptUrl = storedFile.fileUrl();
+            receiptFileName = storedFile.originalFileName();
+        }
 
         expense.updateExpense(
                 payer,
@@ -136,8 +155,8 @@ public class ExpenseService {
                 req.category(),
                 req.payMethod(),
                 req.isShared(),
-                req.receiptUrl(),
-                req.receiptFileName(),
+                receiptUrl,
+                receiptFileName,
                 req.splitMode()
         );
 
@@ -159,6 +178,10 @@ public class ExpenseService {
 
         if (!expense.getTrip().getId().equals(tripId)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "해당 trip의 영수증이 아닙니다.");
+        }
+
+        if (expense.getReceiptUrl() != null && !expense.getReceiptUrl().isBlank()) {
+            fileStorageService.deleteFile(expense.getReceiptUrl());
         }
 
         expenseRepository.delete(expense);

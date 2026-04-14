@@ -5,7 +5,7 @@ import com.tripmoa.security.jwt.JwtAuthenticationFilter;
 import com.tripmoa.security.jwt.JwtTokenProvider;
 import com.tripmoa.security.oauth.CustomOAuth2UserService;
 import com.tripmoa.security.oauth.OAuth2SuccessHandler;
-import com.tripmoa.security.princpal.CustomUserDetailsService;
+import com.tripmoa.security.principal.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -76,8 +76,9 @@ public class SecurityConfig {
                         // 소셜 로그인 관련 경로 : 인증 없이 접근 가능
                         .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**", "/api/test/**").permitAll()
 
-                        // 비로그인 사용자도 볼 수 있는 데이터 (Public API) -> GET 경로만 허용으로 수정하기
-                        .requestMatchers("/api/travelstory/**", "/api/mate/**").permitAll()
+                        // 비로그인 사용자도 볼 수 있는 데이터 (Public API) GET 경로만 허용
+                        .requestMatchers(HttpMethod.GET, "/api/travelstory/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/mate/**").permitAll()
 
                         // Swagger 경로 허용
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

@@ -89,6 +89,13 @@ public enum ErrorCode {
 
 
     // ====== Mate 도메인 ======
+    NOTICE_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_GROUP_404_001", "공지 그룹을 찾을 수 없습니다."),
+    NOTICE_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_ITEM_404_001", "공지 메모를 찾을 수 없습니다."),
+    DUPLICATE_NOTICE_GROUP_NAME(HttpStatus.CONFLICT, "NOTICE_GROUP_409_001", "이미 사용 중인 공지 그룹명입니다."),
+    NOTICE_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE_TAG_404_001", "공지 태그를 찾을 수 없습니다."),
+
+
+    // ====== Mate 도메인 ======
 
     // 일정 관련 (1000번대)
     INVALID_SCHEDULE(HttpStatus.BAD_REQUEST, "MATE_400_001", "유효하지 않은 여행 일정입니다"),

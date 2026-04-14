@@ -6,7 +6,7 @@ import com.tripmoa.expense.dto.response.OcrInitialResponse;
 import com.tripmoa.expense.service.OcrMapper;
 import com.tripmoa.expense.service.OcrService;
 import com.tripmoa.trip.service.TripPermissionService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;

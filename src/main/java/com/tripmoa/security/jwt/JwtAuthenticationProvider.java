@@ -1,7 +1,7 @@
 package com.tripmoa.security.jwt;
 
-import com.tripmoa.security.princpal.CustomUserDetails;
-import com.tripmoa.security.princpal.CustomUserDetailsService;
+import com.tripmoa.security.principal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetailsService;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

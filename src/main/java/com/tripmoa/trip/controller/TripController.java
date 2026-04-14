@@ -1,6 +1,6 @@
 package com.tripmoa.trip.controller;
 
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.trip.dto.*;
 import com.tripmoa.trip.enums.TripStatus;
 import com.tripmoa.trip.enums.TripVisibility;

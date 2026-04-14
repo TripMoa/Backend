@@ -1,4 +1,4 @@
-package com.tripmoa.security.princpal;
+package com.tripmoa.security.principal;
 
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;

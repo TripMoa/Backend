@@ -1,6 +1,6 @@
 package com.tripmoa.user.controller;
 
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.user.dto.CheckEmailRequest;
 import com.tripmoa.user.dto.CheckEmailResponse;
 import com.tripmoa.user.dto.UserResponseDto;
