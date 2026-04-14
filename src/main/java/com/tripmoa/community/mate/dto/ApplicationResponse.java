@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Builder
 @Getter
@@ -38,7 +39,10 @@ public class ApplicationResponse {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
+    private String profileImage;
     private String avatar;
+
+    private List<String> travelStyles;
     private int age;
     private String gender;
 
@@ -67,7 +71,13 @@ public class ApplicationResponse {
                 .endDate(post.getEndDate())
                 .status(application.getStatus())
                 .content(application.getContent())
+                .profileImage(applicant.getProfileImage())
                 .avatar(applicant.getAvatarEmoji())
+                .travelStyles(
+                        application.getApplicant().getTravelStyles().stream()
+                        .map(userStyle -> userStyle.getStyle().getName())
+                        .toList()
+                )
                 .age(age)
                 .gender(genderName)
                 .build();
