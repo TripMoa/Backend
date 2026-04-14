@@ -3,7 +3,7 @@ package com.tripmoa.blog.controller;
 import com.tripmoa.blog.dto.comment.CommentCreateRequest;
 import com.tripmoa.blog.dto.comment.CommentResponse;
 import com.tripmoa.blog.service.BlogCommentService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

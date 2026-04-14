@@ -5,7 +5,7 @@ import com.tripmoa.blog.dto.post.BlogResponse;
 import com.tripmoa.blog.dto.post.BlogUpdateRequest;
 import com.tripmoa.blog.service.BlogService;
 import com.tripmoa.blog.service.BlogLikeService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.blog.service.SavedItineraryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

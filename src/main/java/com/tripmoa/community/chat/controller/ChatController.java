@@ -5,7 +5,7 @@ import com.tripmoa.community.chat.dto.ChatRequest;
 import com.tripmoa.community.chat.dto.ChatRoomResponse;
 import com.tripmoa.community.chat.service.ChatService;
 import com.tripmoa.community.chat.service.UnreadMessageCheck;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.user.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -4,7 +4,7 @@ import com.tripmoa.blog.dto.draft.DraftCreateRequest;
 import com.tripmoa.blog.dto.draft.DraftResponse;
 import com.tripmoa.blog.dto.draft.DraftUpdateRequest;
 import com.tripmoa.blog.service.DraftService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

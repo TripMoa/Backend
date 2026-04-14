@@ -3,7 +3,7 @@ package com.tripmoa.expense.controller;
 import com.tripmoa.expense.dto.request.DepositLogCreateRequest;
 import com.tripmoa.expense.dto.response.DepositLogResponse;
 import com.tripmoa.expense.service.DepositLogService;
-import com.tripmoa.security.princpal.CustomUserDetails;
+import com.tripmoa.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
