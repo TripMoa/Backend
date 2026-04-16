@@ -38,11 +38,11 @@ public class AuthorDto {
                 .avatarColor(user.getAvatarColor())
                 .gender(user.getGender() != null ? user.getGender().name() : null)
                 .age(age)
-//                .travelStyles(
-//                        user.getTravelStyles().stream()
-//                                .map(userStyle -> userStyle.getStyle().getName())
-//                                .toList()
-//                )
+                .travelStyles(
+                        user.getTravelStyles().stream()
+                                .map(userStyle -> userStyle.getStyle().getName())
+                                .toList()
+                )
                 .build();
     }
 }
