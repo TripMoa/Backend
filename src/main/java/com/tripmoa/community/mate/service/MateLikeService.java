@@ -57,4 +57,14 @@ public class MateLikeService {
             return 0L;
         }
     }
+
+    public boolean isLikedByUser(Long postId, Long userId) {
+        if (userId == null) return false;
+
+        String likeUserKey = "post:" + postId + ":likeUsers";
+        return Boolean.TRUE.equals(
+                redisTemplate.boundSetOps(likeUserKey)
+                        .isMember(String.valueOf(userId))
+        );
+    }
 }
