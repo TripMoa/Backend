@@ -1,5 +1,6 @@
 package com.tripmoa.community.mate.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tripmoa.community.mate.enums.AgeGroup;
 import com.tripmoa.community.mate.enums.GenderPreference;
 import com.tripmoa.community.mate.domain.MatePost;

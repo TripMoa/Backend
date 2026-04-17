@@ -1,19 +1,25 @@
 package com.tripmoa.community.mate.controller;
 
+import com.tripmoa.community.mate.domain.MatePost;
 import com.tripmoa.community.mate.dto.*;
 import com.tripmoa.community.mate.service.MateApplicationService;
 import com.tripmoa.community.mate.service.MateLikeService;
 import com.tripmoa.community.mate.service.MateService;
+import com.tripmoa.community.mate.service.PassedPostService;
 import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 //import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,11 +28,15 @@ public class MateController {
     private final MateService mateService;
     private final MateApplicationService applyService;
     private final MateLikeService likeService;
+    private final PassedPostService passedPostService;
 
     // 전체 메이트 포스트 조회
     @GetMapping("/")
-    public ResponseEntity<List<MateResponse>> getMatePosts() {
-        List<MateResponse> matePosts = this.mateService.getMatePosts();
+    public ResponseEntity<List<MateResponse>> getMatePosts(
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        Long userId = user.getUser().getId();
+        List<MateResponse> matePosts = this.mateService.getMatePosts(userId);
         return ResponseEntity.ok().body(matePosts);
     }
 
@@ -136,6 +146,33 @@ public class MateController {
         Long userId = userDetails.getUser().getId();
         LikeResponse response = likeService.toggleLike(postId, userId);
         return ResponseEntity.ok().body(response);
+    }
+
+    // passed 게시글
+    @PostMapping("/posts/{postId}/pass")
+    public ResponseEntity<Void> pass(@PathVariable Long postId,
+                                     @AuthenticationPrincipal CustomUserDetails user) {
+        passedPostService.pass(user.getUser().getId(), postId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/posts/{postId}/pass")
+    public ResponseEntity<Void> unpass(@PathVariable Long postId,
+                                       @AuthenticationPrincipal CustomUserDetails user) {
+        passedPostService.unpass(user.getUser().getId(), postId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/posts/passed")
+    public ResponseEntity<List<MateResponse>> getPassed(
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        return ResponseEntity.ok(mateService.getPassedPosts(user.getUser().getId()));
+    }
+
+    @GetMapping("/posts/expired")
+    public ResponseEntity<List<MateResponse>> getExpired(Pageable pageable) {
+        return ResponseEntity.ok(mateService.getExpiredPosts(pageable));
     }
 
 }

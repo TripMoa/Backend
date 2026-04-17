@@ -11,12 +11,16 @@ import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,16 +30,18 @@ public class MateService {
     private final UserRepository userRepository;
     private final ApplicationRepository applyRepository;
     private final MateLikeService likeService;
+    private final PassedPostService passedPostService;
     private final MateDomain domain;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public List<MateResponse> getMatePosts() {
+    public List<MateResponse> getMatePosts(Long userId) {
         List<MatePost> matePosts = mateRepository.findAllWithUser();
         return matePosts.stream()
                 .map(post -> {
                     MateResponse response = MateResponse.from(post);
-                    Long likeCount = likeService.getLikeCount(post.getId());
-                    response.setLikesCount(likeCount);
+                    response.setLikesCount(likeService.getLikeCount(post.getId()));
+                    response.setLiked(likeService.isLikedByUser(post.getId(), userId));
+
                     return response;
                 })
                 .collect(Collectors.toList());
@@ -45,6 +51,7 @@ public class MateService {
     public MateResponse getPostsById(Long id, Long userId) {
         MatePost matePostDetail = mateRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+
         String redisKey = "view:mate:" + id + ":user:" + userId;
         Boolean isFirstView = redisTemplate
                 .opsForValue()
@@ -54,20 +61,10 @@ public class MateService {
             mateRepository.updateViewsCount(id);
         }
 
-        Long likeCount = likeService.getLikeCount(id);
-        boolean isLiked = false;
-        String likeUserKey = "post:" + id + ":likeUsers";
-        isLiked = Boolean.TRUE.equals(
-                redisTemplate
-                        .boundSetOps(likeUserKey)
-                        .isMember(String.valueOf(userId)));
-
         MateResponse response = MateResponse.from(matePostDetail);
-        response.setLikesCount(likeCount);
-        response.setLiked(isLiked);
-
-        boolean hasApplied = applyRepository.existsByMatePostIdAndApplicantId(id, userId);
-        response.setHasApplied(hasApplied);
+        response.setLikesCount(likeService.getLikeCount(id));
+        response.setLiked(likeService.isLikedByUser(id, userId));
+        response.setHasApplied(applyRepository.existsByMatePostIdAndApplicantId(id, userId));
 
         return response;
     }
@@ -89,6 +86,24 @@ public class MateService {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_POST_ACCESS);
         }
         mateRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MateResponse> getExpiredPosts(Pageable pageable) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        return mateRepository
+                .findByEndDateBeforeOrderByEndDateDesc(today, pageable)
+                .map(MateResponse::from)
+                .getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MateResponse> getPassedPosts(Long userId) {
+        Set<Long> ids = passedPostService.getPassedIds(userId);
+        if (ids.isEmpty()) return List.of();
+        return mateRepository.findAllById(ids).stream()
+                .map(MateResponse::from)
+                .toList();
     }
 
 
