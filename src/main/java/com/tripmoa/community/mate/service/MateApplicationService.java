@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -47,6 +48,10 @@ public class MateApplicationService {
     public ApplicationResponse createApply(Long postId, ApplicationRequest request, User applicant) {
         MatePost post = this.mateRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+
+        if(post.getEndDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(ErrorCode.MATE_POST_EXPIRED);
+        }
 
         MateApplication application = MateApplication.builder()
                 .matePost(post)
