@@ -27,11 +27,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MateService {
     private final MateRepository mateRepository;
-    private final ApplicationRepository applyRepository;
     private final MateLikeService likeService;
+    private final MateApplicationService applyService;
     private final PassedPostService passedPostService;
-    private final MateDomain domain;
     private final ViewCountService viewCountService;
+    private final MateDomain domain;
 
     public List<MateResponse> getMatePosts(Long userId) {
         List<MatePost> matePosts = mateRepository.findAllWithUser();
@@ -56,7 +56,7 @@ public class MateService {
         MateResponse response = MateResponse.from(matePostDetail);
         response.setLikesCount(likeService.getLikeCount(id));
         response.setLiked(likeService.isLikedByUser(id, userId));
-        response.setHasApplied(applyRepository.existsByMatePostIdAndApplicantId(id, userId));
+        response.setHasApplied(applyService.hasApplied(id, userId));
 
         return response;
     }

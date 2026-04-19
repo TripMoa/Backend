@@ -89,7 +89,10 @@ public class MateApplicationService {
 
         return ApplicationResponse.from(application);
 
+    }
 
+    public boolean hasApplied(Long postId, Long userId) {
+        return applyRepository.existsByMatePostIdAndApplicantId(postId, userId);
     }
 
 }
