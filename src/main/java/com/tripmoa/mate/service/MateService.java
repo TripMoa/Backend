@@ -27,12 +27,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MateService {
     private final MateRepository mateRepository;
-    private final UserRepository userRepository;
     private final ApplicationRepository applyRepository;
     private final MateLikeService likeService;
     private final PassedPostService passedPostService;
     private final MateDomain domain;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final ViewCountService viewCountService;
 
     public List<MateResponse> getMatePosts(Long userId) {
         List<MatePost> matePosts = mateRepository.findAllWithUser();
@@ -52,14 +51,7 @@ public class MateService {
         MatePost matePostDetail = mateRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
-        String redisKey = "view:mate:" + id + ":user:" + userId;
-        Boolean isFirstView = redisTemplate
-                .opsForValue()
-                .setIfAbsent(redisKey, "true", Duration.ofHours(24));
-
-        if (Boolean.TRUE.equals(isFirstView)) {
-            mateRepository.updateViewsCount(id);
-        }
+        viewCountService.increaseIfFirstView(id, userId);
 
         MateResponse response = MateResponse.from(matePostDetail);
         response.setLikesCount(likeService.getLikeCount(id));
