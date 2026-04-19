@@ -95,4 +95,35 @@ public class MateApplicationService {
         return applyRepository.existsByMatePostIdAndApplicantId(postId, userId);
     }
 
+    private MateApplication findAndValidateExpired(Long applyId) {
+        MateApplication application = applyRepository.findById(applyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        if (!application.getMatePost().isExpired()) {
+            throw new BusinessException(ErrorCode.MATE_POST_NOT_EXPIRED);
+        }
+
+        return application;
+    }
+
+    @Transactional
+    public void deleteSentApplication(Long applyId, User applicant) {
+        MateApplication application = findAndValidateExpired(applyId);
+
+        if(!application.getApplicant().getId().equals(applicant.getId())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_APPLICATION_ACCESS);
+        }
+
+        applyRepository.delete(application);
+    }
+
+    public void deleteReceivedApplication(Long applyId, User author) {
+        MateApplication application = findAndValidateExpired(applyId);
+
+        if(!application.isAuthor(author)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_APPLICATION_ACCESS);
+        }
+
+        applyRepository.delete(application);
+    }
 }

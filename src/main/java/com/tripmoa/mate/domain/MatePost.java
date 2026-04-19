@@ -10,6 +10,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Getter
 @Builder
@@ -90,4 +91,7 @@ public class MatePost {
     public void incCurrentParticipant() {this.currentParticipant++;}
     public void decCurrentParticipant() {this.currentParticipant--;}
 
+    public boolean isExpired() {
+        return this.endDate.isBefore(LocalDate.now(ZoneId.of("Asia/Seoul")));
+    }
 }
