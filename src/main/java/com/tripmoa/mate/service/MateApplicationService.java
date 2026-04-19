@@ -95,4 +95,15 @@ public class MateApplicationService {
         return applyRepository.existsByMatePostIdAndApplicantId(postId, userId);
     }
 
+    private MateApplication findAndValidateExpired(Long applyId) {
+        MateApplication application = applyRepository.findById(applyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        if (!application.getMatePost().isExpired()) {
+            throw new BusinessException(ErrorCode.MATE_POST_NOT_EXPIRED);
+        }
+
+        return application;
+    }
+
 }

@@ -123,7 +123,8 @@ public enum ErrorCode {
     CANNOT_APPLY_OWN_POST(HttpStatus.BAD_REQUEST, "MATE_400_012", "본인 게시글에는 신청할 수 없습니다"),
     ALREADY_PROCESSED(HttpStatus.BAD_REQUEST, "MATE_400_013", "이미 처리된 신청서입니다"),
     UNAUTHORIZED_APPLICATION_ACCESS(HttpStatus.FORBIDDEN, "MATE_403_002", "신청서 접근 권한이 없습니다"),
-    MATE_POST_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_014", "만료된 게시글에는 신청 할 수 없습니다."),
+    MATE_POST_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_014", "만료된 게시글에는 신청 할 수 없습니다"),
+    MATE_POST_NOT_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_015", "만료된 게시글의 신청서만 삭제할 수 있습니다"),
 
     // ====== 서버 내부 오류 ======
 
