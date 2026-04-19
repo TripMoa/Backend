@@ -116,4 +116,14 @@ public class MateApplicationService {
 
         applyRepository.delete(application);
     }
+
+    public void deleteReceivedApplication(Long applyId, User author) {
+        MateApplication application = findAndValidateExpired(applyId);
+
+        if(!application.isAuthor(author)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_APPLICATION_ACCESS);
+        }
+
+        applyRepository.delete(application);
+    }
 }

@@ -86,4 +86,14 @@ public class MateApplicationController {
         this.applyService.deleteSentApplication(applyId, applicant);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/applications/{applyId}/received")
+    public ResponseEntity<Void> deleteReceivedApplication(
+            @PathVariable Long applyId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        User author = userDetails.getUser();
+        this.applyService.deleteReceivedApplication(applyId, author);
+        return ResponseEntity.noContent().build();
+    }
 }
