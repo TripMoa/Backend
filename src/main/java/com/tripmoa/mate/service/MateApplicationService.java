@@ -49,6 +49,8 @@ public class MateApplicationService {
             throw new BusinessException(ErrorCode.MATE_POST_EXPIRED);
         }
 
+        domain.validateProfileCompleteness(applicant);
+
         MateApplication application = MateApplication.builder()
                 .matePost(post)
                 .applicant(applicant)
