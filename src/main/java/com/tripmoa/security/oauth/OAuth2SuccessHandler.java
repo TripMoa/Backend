@@ -7,7 +7,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -25,9 +28,17 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    @Value("${oauth2.redirect-url}")
+    private String redirectBaseUrl;
+
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthService authService;
 
+    /**
+     * TODO : HTTPOnly 쿠키로 전달 (실서비스 권장)
+     * refresh token만 쿠키로 전달.
+     * access token은 localStorage에서 관리.
+     */
     @Override
     public void onAuthenticationSuccess(
             HttpServletRequest request,
@@ -39,38 +50,26 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         User user = oAuth2User.getUser();
 
         // 현재 로그인한 소셜 공급자(Provider) 이름 가져오기
-        String provider = user.getSocialAccounts().stream()
-                .filter(sa -> Boolean.TRUE.equals(sa.getConnected()))
-                .map(sa -> sa.getProvider().name())
-                .findFirst()
-                .orElse("GOOGLE"); // 기본값
-
-        // 액세스 토큰 생성
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId());
+        OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+        String provider = oauthToken.getAuthorizedClientRegistrationId().toUpperCase();
 
         // 리프레시 토큰 생성 및 DB 저장
         String refreshToken = authService.createAndSaveRefreshToken(user);
 
-        // 프론트엔드로 두 토큰 모두 전달
-        String redirectUrl = String.format(
-                "http://localhost:5173/oauth2/redirect?token=%s&refreshToken=%s&provider=%s",
-                accessToken,
-                refreshToken,
-                provider
-        );
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(false) // TODO : 로컬 http 테스트용 false. 배포(https)에서 true
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(60 * 60 * 24 * 14)
+                .build();
+
+        response.addHeader("Set-Cookie", refreshCookie.toString());
+
+        // provider만 전달
+        String redirectUrl = redirectBaseUrl + "/oauth2/redirect?provider=" + provider;
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
 
-        /**
-         * 방법 B: HTTPOnly 쿠키로 전달 (실서비스 권장)
-         *
-         * Cookie cookie = new Cookie("accessToken", token);
-         * cookie.setHttpOnly(true);
-         * cookie.setSecure(true);
-         * cookie.setPath("/");
-         * cookie.setMaxAge(60 * 60); // 1시간
-         * response.addCookie(cookie);
-         * response.sendRedirect("http://localhost:3000");
-         */
     }
 }
