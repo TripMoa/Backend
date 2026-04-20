@@ -1,5 +1,7 @@
 package com.tripmoa.mate.domain;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.mate.Exception.InvalidBudgetException;
 import com.tripmoa.mate.Exception.InvalidParticipantInfoException;
 import com.tripmoa.mate.Exception.InvalidScheduleException;
@@ -60,5 +62,11 @@ public class MateDomain {
 
     public boolean isAuthor(MatePost post, User user) {
         return post.getUser().getId().equals(user.getId());
+    }
+
+    public void validateProfileCompleteness(User user) {
+        if (user.getAgeVerified() == false || user.getGender() == null || user.getBirthDate() == null) {
+            throw new BusinessException(ErrorCode.PROFILE_INCOMPLETE);
+        }
     }
 }

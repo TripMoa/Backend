@@ -63,6 +63,7 @@ public class MateService {
 
     @Transactional
     public MateResponse createPost(MateRequest request, User user) {
+        domain.validateProfileCompleteness(user);
         MatePost post = request.toEntity(user);
 
         domain.validateCreate(post);
