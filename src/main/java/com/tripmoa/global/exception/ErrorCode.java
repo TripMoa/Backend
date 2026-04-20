@@ -133,6 +133,9 @@ public enum ErrorCode {
     STORY_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_001", "여행기를 수정할 권한이 없습니다."),
     STORY_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_002", "여행기를 삭제할 권한이 없습니다."),
 
+    // 일정 저장 관련에 추가
+    SAVED_ITINERARY_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_004", "저장된 일정을 찾을 수 없습니다."),
+
     // 댓글 관련
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_002", "commentId에 해당하는 댓글이 없습니다."),
     COMMENT_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_003", "댓글을 수정할 권한이 없습니다."),
