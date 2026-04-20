@@ -73,6 +73,10 @@ public class SecurityConfig {
                         // OCR 프록시: 로그인 필요
                         .requestMatchers(HttpMethod.POST, "/api/trips/*/expenses/ocr/**").authenticated()
 
+                        // Mate : 로그인 필요한 엔드포인트
+                        .requestMatchers(HttpMethod.GET, "/api/mate/posts/passed").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/mate/applications/**").authenticated()
+
                         // 소셜 로그인 관련 경로 : 인증 없이 접근 가능
                         .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**", "/api/test/**").permitAll()
 
