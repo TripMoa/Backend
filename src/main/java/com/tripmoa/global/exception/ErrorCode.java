@@ -125,6 +125,7 @@ public enum ErrorCode {
     UNAUTHORIZED_APPLICATION_ACCESS(HttpStatus.FORBIDDEN, "MATE_403_002", "신청서 접근 권한이 없습니다"),
     MATE_POST_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_014", "만료된 게시글에는 신청 할 수 없습니다"),
     MATE_POST_NOT_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_015", "만료된 게시글의 신청서만 삭제할 수 있습니다"),
+    PROFILE_INCOMPLETE(HttpStatus.BAD_REQUEST, "MATE_400_016", "프로필(나이, 성별)을 먼저 설정해주세요."),
 
     // ====== Story 도메인 ======
 
