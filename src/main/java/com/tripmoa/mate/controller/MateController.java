@@ -26,9 +26,9 @@ public class MateController {
     // 전체 메이트 포스트 조회
     @GetMapping("/")
     public ResponseEntity<List<MateResponse>> getMatePosts(
-            @AuthenticationPrincipal CustomUserDetails user
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long userId = user.getUser().getId();
+        Long userId = (userDetails != null) ? userDetails.getUser().getId() : null;
         List<MateResponse> matePosts = this.mateService.getMatePosts(userId);
         return ResponseEntity.ok().body(matePosts);
     }
@@ -39,7 +39,7 @@ public class MateController {
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long userId = userDetails.getUser().getId();
+        Long userId = (userDetails != null) ? userDetails.getUser().getId() : null;
         MateResponse matePostDetail = this.mateService.getPostsById(id, userId);
         return ResponseEntity.ok().body(matePostDetail);
     }

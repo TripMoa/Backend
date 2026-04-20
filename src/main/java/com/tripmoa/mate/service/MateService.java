@@ -39,7 +39,7 @@ public class MateService {
                 .map(post -> {
                     MateResponse response = MateResponse.from(post);
                     response.setLikesCount(likeService.getLikeCount(post.getId()));
-                    response.setLiked(likeService.isLikedByUser(post.getId(), userId));
+                    response.setLiked(userId != null && likeService.isLikedByUser(post.getId(), userId));
 
                     return response;
                 })
@@ -55,8 +55,8 @@ public class MateService {
 
         MateResponse response = MateResponse.from(matePostDetail);
         response.setLikesCount(likeService.getLikeCount(id));
-        response.setLiked(likeService.isLikedByUser(id, userId));
-        response.setHasApplied(applyService.hasApplied(id, userId));
+        response.setLiked(userId != null && likeService.isLikedByUser(id, userId));
+        response.setHasApplied(userId != null && applyService.hasApplied(id, userId));
 
         return response;
     }

@@ -21,7 +21,6 @@ public class MateApplicationController {
     private final MateApplicationService applyService;
 
     // 내가 받은 메이트 신청서 조회
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/applications/received")
     public ResponseEntity<List<ApplicationResponse>> getReceivedApplication(
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -32,7 +31,6 @@ public class MateApplicationController {
     }
 
     // 내가 보낸 메이트 신청서 조회
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/applications/sent")
     public ResponseEntity<List<ApplicationResponse>> getSentApplication(
             @AuthenticationPrincipal CustomUserDetails userDetails
