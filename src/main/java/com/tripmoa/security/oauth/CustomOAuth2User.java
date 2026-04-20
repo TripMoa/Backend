@@ -27,7 +27,7 @@ public class CustomOAuth2User implements OAuth2User {
         this.attributes = attributes;
     }
 
-    // 사용자 권한 목록
+    // TODO : 사용자 권한 목록
     // -> 지금은 ROLE_USER 같은 권한을 쓰지 않아서 null 처리
     // -> 나중에 권한 시스템 만들면 여기에 추가 가능
     @Override

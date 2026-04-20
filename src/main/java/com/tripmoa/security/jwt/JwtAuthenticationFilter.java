@@ -6,8 +6,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -25,14 +28,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
 
     // SecurityConfig에서 주입받음
     public JwtAuthenticationFilter(
             JwtTokenProvider jwtTokenProvider,
-            CustomUserDetailsService customUserDetailsService
+            CustomUserDetailsService customUserDetailsService,
+            AuthenticationEntryPoint authenticationEntryPoint
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.customUserDetailsService = customUserDetailsService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     // 실제 필터 로직 -> 요청이 들어올 때마다 실행됨
@@ -55,7 +61,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
 
                 // 토큰 유효성 검사
-                if (jwtTokenProvider.validateToken(token)) {
+                if (!jwtTokenProvider.validateToken(token)) {
+                    throw new BadCredentialsException("유효하지 않거나 만료된 토큰입니다.");
+                }
 
                     // 토큰에서 userId 추출
                     Long userId = jwtTokenProvider.getUserId(token);
@@ -75,31 +83,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // SecurityContext에 인증 정보 저장
                     SecurityContextHolder.getContext()
                             .setAuthentication(authentication);
-                } else {
-                    // 토큰은 있는데 유효하지 않은 경우 (만료 등)
-                    sendErrorResponse(response, "토큰이 만료되었습니다.");
-                    return;
-                }
+
             } catch (Exception e) {
-                // 필터 내에서 발생하는 모든 예외를 잡아서 401로 응답
-                sendErrorResponse(response, "인증에 실패했습니다.");
+                SecurityContextHolder.clearContext();
+                authenticationEntryPoint.commence(
+                        request,
+                        response,
+                        new InsufficientAuthenticationException("JWT 인증 실패", e)
+                );
                 return;
             }
         }
 
         // 다음 필터로 요청 전달
         filterChain.doFilter(request, response);
-    }
-
-    private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {
-        // 상태 코드를 401(Unauthorized)로 설정하여 프론트의 Interceptor 호출
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-
-        // 응답 형식을 JSON으로 지정
-        response.setContentType("application/json;charset=UTF-8");
-
-        // 프론트엔드가 에러 내용을 알 수 있도록 JSON 바디 작성
-        response.getWriter().write(String.format("{\"status\": 401, \"message\": \"%s\"}", message));
     }
 
 }

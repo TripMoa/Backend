@@ -1,5 +1,7 @@
 package com.tripmoa.security.principal;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +28,7 @@ public class CustomUserDetailsService {
 
         // DB에서 사용자 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("사용자를 찾을 수 없습니다. id=" + userId)
-                );
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // User 엔티티를 CustomUserDetails로 감싸서 반환
         return new CustomUserDetails(user);

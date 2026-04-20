@@ -117,7 +117,11 @@ public class SecurityConfig {
 
         // JWT 인증 필터 추가 : OAuth2 로그인 이후부터는 모든 요청에서 토큰 검증
         http.addFilterBefore(
-                new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService),
+                new JwtAuthenticationFilter(
+                        jwtTokenProvider,
+                        customUserDetailsService,
+                        jwtAuthenticationEntryPoint
+                ),
                 UsernamePasswordAuthenticationFilter.class
         );
 

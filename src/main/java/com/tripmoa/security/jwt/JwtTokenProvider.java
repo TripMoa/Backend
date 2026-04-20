@@ -4,7 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.jwt.JwtException;
+import io.jsonwebtoken.JwtException;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -15,7 +15,7 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    // 설정한 비밀키
+    // TODO : 설정한 비밀키 고정 (개발용)
     @Value("${jwt.secret}")
     private String secretKey;
 

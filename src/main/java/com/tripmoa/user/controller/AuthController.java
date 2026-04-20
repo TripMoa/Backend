@@ -2,11 +2,13 @@ package com.tripmoa.user.controller;
 
 import com.tripmoa.user.service.AuthService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,24 +23,51 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-
+    public ResponseEntity<?> refresh(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
         // 토큰이 없는 경우 처리
-        if (refreshToken == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("리프레시 토큰이 누락되었습니다.");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.ok(Map.of("authenticated", false));
         }
 
         try {
-            // AuthService의 로직 호출 (DB 검증 + JWT 검증 + 토큰 로테이션)
             Map<String, String> tokens = authService.refreshAccessToken(refreshToken);
 
-            // 성공 시 새로운 Access/Refresh 토큰 반환
-            return ResponseEntity.ok(tokens);
+            String newRefreshToken = tokens.get("refreshToken");
+
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                    .httpOnly(true)
+                    .secure(false) // TODO : 로컬 http 테스트용 false. 배포(https) true
+                    .path("/")
+                    .sameSite("Lax")
+                    .maxAge(60 * 60 * 24 * 14)
+                    .build();
+
+            response.addHeader("Set-Cookie", refreshCookie.toString());
+
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", tokens.get("accessToken"),
+                    "authenticated", true
+            ));
 
         } catch (RuntimeException e) {
-            // DB에 없거나 만료된 경우 401 응답 -> 프론트가 이를 가로채서 로그아웃시킴
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            // 토큰 만료/위조 등 예상된 케이스 → 쿠키 삭제 + authenticated: false
+            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                    .httpOnly(true)
+                    .secure(false)
+                    .path("/")
+                    .sameSite("Lax")
+                    .maxAge(0)
+                    .build();
+            response.addHeader("Set-Cookie", deleteCookie.toString());
+
+            return ResponseEntity.ok(Map.of("authenticated", false));
+
+        } catch (Exception e) {
+            // DB 장애 등 서버 오류 → 쿠키 건드리지 않고 500 반환
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

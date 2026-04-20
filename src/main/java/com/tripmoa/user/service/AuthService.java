@@ -3,6 +3,7 @@ package com.tripmoa.user.service;
 import com.tripmoa.security.jwt.JwtTokenProvider;
 import com.tripmoa.user.entity.RefreshToken;
 import com.tripmoa.user.entity.User;
+import com.tripmoa.user.enums.UserStatus;
 import com.tripmoa.user.repository.RefreshTokenRepository;
 import com.tripmoa.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -24,14 +25,19 @@ public class AuthService {
     // 로그인 시 리프레시 토큰 저장/갱신
     @Transactional
     public String createAndSaveRefreshToken(User user) {
-        // 중첩 방지: 기존 유저의 리프레시 토큰이 있다면 모두 삭제
-        refreshTokenRepository.deleteByUser(user);
-
         String refreshTokenValue = jwtTokenProvider.createRefreshToken(user.getId());
         LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
 
-        // 새로운 토큰 저장
-        refreshTokenRepository.save(new RefreshToken(user, refreshTokenValue, expiryDate));
+        RefreshToken refreshToken = refreshTokenRepository.findByUser(user)
+                .orElse(null);
+
+        if (refreshToken != null) {
+            refreshToken.updateToken(refreshTokenValue, expiryDate);
+        } else {
+            // 새로운 토큰 저장
+            refreshTokenRepository.save(new RefreshToken(user, refreshTokenValue, expiryDate));
+        }
+
         return refreshTokenValue;
     }
 
@@ -46,17 +52,25 @@ public class AuthService {
     // 토큰 재발급 검증 로직
     @Transactional
     public Map<String, String> refreshAccessToken(String refreshToken) {
-        // DB에서 해당 토큰 존재 여부 확인
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("DB에 존재하지 않는 리프레시 토큰입니다."));
 
         // JWT 유효성 및 만료 검사
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            refreshTokenRepository.delete(storedToken);
             throw new RuntimeException("만료된 리프레시 토큰입니다. 다시 로그인하세요.");
         }
 
+        // DB 토큰 존재 여부 확인
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new RuntimeException("DB에 존재하지 않는 리프레시 토큰입니다."));
+
         User user = storedToken.getUser();
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            refreshTokenRepository.delete(storedToken);
+            refreshTokenRepository.flush();
+            throw new RuntimeException("비활성 사용자입니다.");
+        }
+
+        // 토큰 발급
         String newAccess = jwtTokenProvider.createAccessToken(user.getId());
         String newRefresh = jwtTokenProvider.createRefreshToken(user.getId());
 

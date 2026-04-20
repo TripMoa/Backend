@@ -33,6 +33,9 @@ public enum ErrorCode {
     // 존재하지 않는 User 조회 시
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_404_001", "userId에 해당하는 사용자가 없습니다."),
 
+    // 이메일 정보가 제공되지 않은 경우
+    OAUTH_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH_400_001", "이메일 정보 제공 동의가 필요합니다."),
+
 
     // ====== Trip 도메인 ======
 

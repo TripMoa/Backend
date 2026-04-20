@@ -1,5 +1,7 @@
 package com.tripmoa.security.oauth;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.SocialAccount;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.enums.Gender;
@@ -14,6 +16,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -36,7 +39,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 기본 OAuth2 서비스로부터 사용자 정보 가져오기
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
-        // 어떤 소셜 로그인인지 확인 (google / kakao)
+        // 어떤 소셜 로그인인지 확인 (google / kakao / Naver)
         String registrationId =
                 userRequest.getClientRegistration()
                         .getRegistrationId();
@@ -48,9 +51,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2UserInfo userInfo = OAuth2UserInfoFactory
                 .getOAuth2UserInfo(registrationId, attributes);
 
+        // OAuth 로그인 시 이메일 정보가 제공되지 않은 경우 예외 처리
+        validateEmail(userInfo);
+
         // DB에 이미 있는 사용자인지 확인
         User user = userRepository
                 .findByEmail(userInfo.getEmail())
+                .map(existingUser -> {
+                    linkSocialAccountIfNeeded(existingUser, userInfo, registrationId);
+                    return existingUser;
+                })
                 .orElseGet(() -> createUser(userInfo, registrationId));
 
         // CustomOAuth2User로 감싸서 반환
@@ -99,11 +109,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             // 형식 안 맞으면 잠그지 않고 넘어감
         }
 
-        // 생년월일 정보가 있으면 저장하고 잠금
-        String birth = userInfo.getBirthDay();
-        if (birth != null && !birth.isBlank()) {
-            user.setBirthDate(java.time.LocalDate.parse(birth));
-            user.setBirthLocked(true);
+        // TODO : 생년월일 정보가 있으면 저장하고 잠금 (성인인증 정책 보류)
+        try {
+            String birth = userInfo.getBirthDay();
+            if (birth != null && !birth.isBlank()) {
+                user.setBirthDate(LocalDate.parse(birth));
+                user.setBirthLocked(true);
+            }
+        } catch (Exception e) {
+            // 형식 안 맞으면 저장하지 않고 넘어감
         }
 
         // DB 저장
@@ -120,6 +134,39 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         socialAccountRepository.save(social);
 
         return savedUser;
+    }
+
+    private void linkSocialAccountIfNeeded(User user, OAuth2UserInfo userInfo, String registrationId) {
+        Provider provider = Provider.valueOf(registrationId.toUpperCase());
+
+        SocialAccount socialAccount = socialAccountRepository
+                .findByUserAndProvider(user, provider)
+                .orElseGet(() -> {
+                    SocialAccount newAccount = new SocialAccount();
+                    newAccount.setUser(user);
+                    newAccount.setProvider(provider);
+                    return newAccount;
+                });
+
+        socialAccount.setProviderUserId(userInfo.getId());
+        socialAccount.setConnected(true);
+
+        if (socialAccount.getCreatedAt() == null) {
+            socialAccount.setCreatedAt(LocalDateTime.now());
+        }
+
+        socialAccountRepository.save(socialAccount);
+    }
+
+    private void validateEmail(OAuth2UserInfo userInfo) {
+        String email = userInfo.getEmail();
+
+        // 이메일은 사용자 식별 기준이므로 필수값
+        if (email == null || email.isBlank()) {
+            throw new BusinessException(
+                    ErrorCode.OAUTH_EMAIL_REQUIRED
+            );
+        }
     }
 
 }
