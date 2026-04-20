@@ -9,6 +9,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
 
 /**
+ * TODO : 현재 사용하지않으니 삭제
  * JWT 토큰을 검증하고 인증 객체(Authentication)를 만들어주는 클래스
  * - Filter → Provider → 인증 처리
  * - JWT 인증 로직 분리용 구조 클래스
