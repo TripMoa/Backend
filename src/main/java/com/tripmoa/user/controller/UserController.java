@@ -8,7 +8,9 @@ import com.tripmoa.user.dto.UserUpdateRequestDto;
 import com.tripmoa.user.service.AuthService;
 import com.tripmoa.user.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +27,23 @@ public class UserController {
 
     // 로그아웃 Post
     @PostMapping("/logout")
-    public void logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public void logout(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response
+    ) {
         if (userDetails != null) {
             authService.logout(userDetails.getUser().getId());
         }
+
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false) // TODO : 로컬 http 테스트용. 배포(https) true
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(0)
+                .build();
+
+        response.addHeader("Set-Cookie", deleteCookie.toString());
     }
 
     // 내 정보 조회 Get
