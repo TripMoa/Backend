@@ -3,6 +3,7 @@ package com.tripmoa.story.repository;
 import com.tripmoa.story.domain.StoryLike;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 /* 좋아요 Repository
  - StoryLike 엔티티의 DB 접근 담당 */
@@ -18,4 +19,6 @@ public interface StoryLikeRepository extends JpaRepository<StoryLike, Long> {
 
     // 특정 게시글의 좋아요 개수 조회
     Long countByStory_Id(Long storyId);
+
+    List<StoryLike> findByUser_Id(Long userId);
 }

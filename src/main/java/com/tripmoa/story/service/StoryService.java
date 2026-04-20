@@ -33,8 +33,17 @@ public class StoryService {
     private final BadWordFilter badWordFilter;
 
     // 전체 여행기 목록 조회
-    public List<StoryResponse> getStorys(Long userId) {
-        return storyRepository.findAll().stream()
+    public List<StoryResponse> getStorys(Long userId, String tag) {
+
+        List<Story> stories;
+
+        if (tag == null) {
+            stories = storyRepository.findAll();
+        } else {
+            stories = storyRepository.findByTagsContaining("," + tag + ",");
+        }
+
+        return stories.stream()
                 .map(story -> {
                     User user = story.getAuthor();
 
@@ -169,13 +178,10 @@ public class StoryService {
         User user = userRepository.findById(authorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        return storyRepository.findAll().stream()
-                .filter(story -> story.getAuthor().getId().equals(authorId))
+        return storyRepository.findByAuthor_IdOrderByCreatedAtDesc(authorId).stream()
                 .map(story -> {
-
                     boolean isLiked = storyLikeRepository.existsByStory_IdAndUser_Id(story.getId(), authorId);
                     int commentCount = storyCommentRepository.countByStory_Id(story.getId()).intValue();
-
                     return StoryResponse.from(story, user, isLiked, commentCount);
                 })
                 .collect(Collectors.toList());
@@ -193,6 +199,16 @@ public class StoryService {
 
     // 좋아요한 여행기 목록 조회
     public List<StoryResponse> getLikedStories(Long userId) {
-        return List.of();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        return storyLikeRepository.findByUser_Id(userId).stream()
+                .map(like -> {
+                    Story story = like.getStory();
+                    int commentCount = storyCommentRepository.countByStory_Id(story.getId()).intValue();
+                    return StoryResponse.from(story, story.getAuthor(), true, commentCount);
+                })
+                .collect(Collectors.toList());
     }
 }

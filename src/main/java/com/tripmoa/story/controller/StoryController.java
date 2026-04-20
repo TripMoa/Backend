@@ -27,10 +27,11 @@ public class StoryController {
     // 전체 여행기 목록 (GET /api/stories)
     @GetMapping
     public ResponseEntity<List<StoryResponse>> getAllStories(
+            @RequestParam(required = false) String tag,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails != null ? userDetails.getUser().getId() : null;
-        return ResponseEntity.ok(storyService.getStorys(userId));
+        return ResponseEntity.ok(storyService.getStorys(userId, tag));
     }
 
     // 내가 작성한 여행기 목록 (GET /api/stories/my)
