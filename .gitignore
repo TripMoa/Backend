@@ -2,7 +2,6 @@
 # Build 결과물
 ##############################
 /build/
-/build
 /out/
 /target/
 
@@ -42,15 +41,16 @@ Thumbs.db
 ##############################
 .env
 .env.*
+
+# 모든 설정 파일 ignore
 application-*.yml
 application-*.yaml
 application-*.properties
 
-# 기본 설정은 커밋
+# 기본 설정만 허용
 !application.yml
 !application.yaml
 !application.properties
-!application-dev.properties
 !application-oauth.properties
 !application-prod.properties
 
