@@ -126,6 +126,32 @@ public enum ErrorCode {
     MATE_POST_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_014", "만료된 게시글에는 신청 할 수 없습니다"),
     MATE_POST_NOT_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_015", "만료된 게시글의 신청서만 삭제할 수 있습니다"),
 
+    // ====== Story 도메인 ======
+
+    // 여행기 관련
+    STORY_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_001", "storyId에 해당하는 여행기가 없습니다."),
+    STORY_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_001", "여행기를 수정할 권한이 없습니다."),
+    STORY_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_002", "여행기를 삭제할 권한이 없습니다."),
+
+    // 댓글 관련
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_002", "commentId에 해당하는 댓글이 없습니다."),
+    COMMENT_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_003", "댓글을 수정할 권한이 없습니다."),
+    COMMENT_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_004", "댓글을 삭제할 권한이 없습니다."),
+
+    // 임시저장 관련
+    DRAFT_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_003", "draftId에 해당하는 임시저장이 없습니다."),
+    DRAFT_ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_005", "임시저장에 접근할 권한이 없습니다."),
+
+    // 일정 저장 관련
+    SAVED_ITINERARY_ALREADY_EXISTS(HttpStatus.CONFLICT, "STORY_409_001", "이미 저장된 여행 일정입니다."),
+
+    // 금칙어 관련
+    BAD_WORD_DETECTED(HttpStatus.BAD_REQUEST, "STORY_400_001", "부적절한 단어가 포함되어 있습니다."),
+
+    // 이미지 업로드 관련
+    INVALID_IMAGE_FILE(HttpStatus.BAD_REQUEST, "STORY_400_002", "유효하지 않은 이미지 파일입니다."),
+    IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "STORY_500_001", "이미지 업로드 중 오류가 발생했습니다."),
+
     // ====== 서버 내부 오류 ======
 
     // 예기치 못한 서버 에러 (GlobalExceptionHandler fallback)
