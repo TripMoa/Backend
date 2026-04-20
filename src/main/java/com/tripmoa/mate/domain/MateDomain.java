@@ -65,7 +65,7 @@ public class MateDomain {
     }
 
     public void validateProfileCompleteness(User user) {
-        if (user.getAgeVerified() == false || user.getGender() == null || user.getBirthDate() == null) {
+        if (user.getGender() == null || user.getBirthDate() == null) {
             throw new BusinessException(ErrorCode.PROFILE_INCOMPLETE);
         }
     }
