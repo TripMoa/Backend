@@ -42,17 +42,19 @@ Thumbs.db
 .env
 .env.*
 
-# 모든 설정 파일 ignore
+# 모든 설정 파일 기본 ignore
 application-*.yml
 application-*.yaml
 application-*.properties
 
-# 기본 설정만 허용
-!application.yml
-!application.yaml
-!application.properties
-!application-oauth.properties
-!application-prod.properties
+# 허용할 것만 명시적으로 포함
+application.properties
+application-oauth.properties
+application-prod.properties
+
+# 민감 정보는 명시적으로 차단
+application-secret.properties
+application-dev.properties
 
 ##############################
 # 로그 / 임시 파일
