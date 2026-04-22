@@ -9,7 +9,7 @@ import lombok.Getter;
 public class ChatMessageResponse {
 
     private String id;
-    private String senderId;
+    private Long senderId;
     private String senderName;
     private String senderAvatar;
     private String content;
@@ -19,7 +19,7 @@ public class ChatMessageResponse {
     public static ChatMessageResponse from(ChatMessage message) {
         return ChatMessageResponse.builder()
                 .id(String.valueOf(message.getId()))
-                .senderId(message.getSender().getEmail())
+                .senderId(message.getSender().getId())
                 .senderName(message.getSender().getName())
                 .senderAvatar(message.getSender().getProfileImage())
                 .content(message.getContent())
