@@ -80,6 +80,11 @@ public class SecurityConfig {
                         // 소셜 로그인 관련 경로 : 인증 없이 접근 가능
                         .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/**", "/api/test/**").permitAll()
 
+                        // Schedule : 일정 생성 Ai 호출
+                        .requestMatchers("/api/schedules/**").permitAll()
+                        .requestMatchers("/api/places/**").permitAll()
+                        .requestMatchers("/api/schedule-items/**").permitAll()
+
                         // 비로그인 사용자도 볼 수 있는 데이터 (Public API) GET 경로만 허용
                         .requestMatchers(HttpMethod.GET, "/api/travelstory/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/mate/**").permitAll()
