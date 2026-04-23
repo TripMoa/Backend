@@ -12,8 +12,8 @@ public class ChatRoomResponse {
 
     private String id;                  // chatRoom ID
     private String postId;              // 게시글 ID
-    private String postAuthorId;        // 게시글 작성자 이메일
-    private String applicantId;         // 신청자 이메일
+    private Long postAuthorId;        // 게시글 작성자 ID
+    private Long applicantId;         // 신청자 ID
     private String destination;         // 여행지
     private String startDate;           // 여행 시작일
     private String endDate;             // 여행 종료일
@@ -39,8 +39,8 @@ public class ChatRoomResponse {
         return ChatRoomResponse.builder()
                 .id(String.valueOf(room.getId()))
                 .postId(String.valueOf(room.getMatePost().getId()))
-                .postAuthorId(room.getAuthor().getEmail())
-                .applicantId(room.getApplicant().getEmail())
+                .postAuthorId(room.getAuthor().getId())
+                .applicantId(room.getApplicant().getId())
                 .destination(room.getMatePost().getDestination())
                 .startDate(room.getMatePost().getStartDate().toString())
                 .endDate(room.getMatePost().getEndDate().toString())
