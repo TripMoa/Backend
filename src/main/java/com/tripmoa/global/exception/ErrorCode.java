@@ -159,6 +159,11 @@ public enum ErrorCode {
     INVALID_IMAGE_FILE(HttpStatus.BAD_REQUEST, "STORY_400_002", "유효하지 않은 이미지 파일입니다."),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "STORY_500_001", "이미지 업로드 중 오류가 발생했습니다."),
 
+    // ====== Report 도메인 ======
+    CANNOT_REPORT_SELF(HttpStatus.BAD_REQUEST, "REPORT_400_001", "자기 자신은 신고할 수 없습니다."),
+    ALREADY_REPORTED(HttpStatus.CONFLICT, "REPORT_409_001", "이미 신고한 대상입니다."),
+    REPORTED_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_404_001", "신고 대상 사용자를 찾을 수 없습니다."),
+
     // ====== 서버 내부 오류 ======
 
     // 예기치 못한 서버 에러 (GlobalExceptionHandler fallback)
