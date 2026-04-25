@@ -1,5 +1,6 @@
 package com.tripmoa.mate.service;
 
+import com.tripmoa.global.util.BadWordFilter;
 import com.tripmoa.mate.domain.MateApplication;
 import com.tripmoa.mate.domain.MateDomain;
 import com.tripmoa.mate.domain.MatePost;
@@ -25,6 +26,7 @@ public class MateApplicationService {
     private final MateDomain domain;
     private final MateRepository mateRepository;
     private final ApplicationRepository applyRepository;
+    private final BadWordFilter badWordFilter;
 
     public List<ApplicationResponse> getReceivedApplication(Long ownerId) {
         List<MateApplication> applications  = this.applyRepository.findByOwnerId(ownerId); // 내가 쓴 포스트로 조회
@@ -47,6 +49,10 @@ public class MateApplicationService {
 
         if(post.getEndDate().isBefore(LocalDate.now())) {
             throw new BusinessException(ErrorCode.MATE_POST_EXPIRED);
+        }
+
+        if (badWordFilter.containsBadWord(request.getContent())) {
+            throw new BusinessException(ErrorCode.BAD_WORD_DETECTED);
         }
 
         domain.validateProfileCompleteness(applicant);
