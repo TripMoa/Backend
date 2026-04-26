@@ -1,5 +1,6 @@
 package com.tripmoa.mate.service;
 
+import com.tripmoa.global.util.BadWordFilter;
 import com.tripmoa.mate.domain.MatePost;
 import com.tripmoa.mate.domain.MateDomain;
 import com.tripmoa.mate.dto.MateRequest;
@@ -32,6 +33,7 @@ public class MateService {
     private final PassedPostService passedPostService;
     private final ViewCountService viewCountService;
     private final MateDomain domain;
+    private final BadWordFilter badWordFilter;
 
     public List<MateResponse> getMatePosts(Long userId) {
         List<MatePost> matePosts = mateRepository.findAllWithUser();
@@ -63,6 +65,11 @@ public class MateService {
 
     @Transactional
     public MateResponse createPost(MateRequest request, User user) {
+        if (badWordFilter.containsBadWord(request.getContent())
+                || badWordFilter.containsBadWord(request.getDestination())) {
+            throw new BusinessException(ErrorCode.BAD_WORD_DETECTED);
+        }
+
         domain.validateProfileCompleteness(user);
         MatePost post = request.toEntity(user);
 
