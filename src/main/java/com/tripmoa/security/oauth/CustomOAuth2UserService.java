@@ -4,12 +4,11 @@ import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.entity.SocialAccount;
 import com.tripmoa.user.entity.User;
-import com.tripmoa.user.enums.Gender;
-import com.tripmoa.user.enums.ProfileType;
-import com.tripmoa.user.enums.Provider;
-import com.tripmoa.user.enums.UserStatus;
+import com.tripmoa.user.entity.UserSanction;
+import com.tripmoa.user.enums.*;
 import com.tripmoa.user.repository.SocialAccountRepository;
 import com.tripmoa.user.repository.UserRepository;
+import com.tripmoa.user.repository.UserSanctionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -31,6 +30,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final SocialAccountRepository socialAccountRepository;
+    private final UserSanctionRepository userSanctionRepository;
 
     // 소셜 로그인 성공 시 자동 호출되는 메서드
     @Override
@@ -122,6 +122,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // DB 저장
         User savedUser = userRepository.save(user);
+
+        UserSanction sanction = new UserSanction();
+        sanction.setUser(savedUser);
+        sanction.setLevel(0);
+        sanction.setTotalReports(0);
+        sanction.setStatus(SanctionStatus.NORMAL);
+
+        userSanctionRepository.save(sanction);
 
         // 소셜 계정 연결 정보 저장
         SocialAccount social = new SocialAccount();
