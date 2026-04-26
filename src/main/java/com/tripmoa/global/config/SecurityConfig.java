@@ -4,6 +4,7 @@ import com.tripmoa.security.jwt.JwtAuthenticationEntryPoint;
 import com.tripmoa.security.jwt.JwtAuthenticationFilter;
 import com.tripmoa.security.jwt.JwtTokenProvider;
 import com.tripmoa.security.oauth.CustomOAuth2UserService;
+import com.tripmoa.security.oauth.OAuth2FailureHandler;
 import com.tripmoa.security.oauth.OAuth2SuccessHandler;
 import com.tripmoa.security.principal.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -42,11 +44,17 @@ public class SecurityConfig {
     // 소셜 로그인 성공 시 JWT 발급하고 프론트로 전달하는 핸들러
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
+    // 소셜 로그인 실패 시 프론트로 전달하는 핸들러
+    private final OAuth2FailureHandler oAuth2FailureHandler;
+
     // 인증 실패 시 401 JSON 응답 커스텀하고 싶을 때 사용
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     // 실제 사용자(User)를 DB에서 조회하기 위한 서비스
     private final CustomUserDetailsService customUserDetailsService;
+
+    // OAuth2 인증 요청 시 추가 파라미터를 커스터마이징하기 위한 Resolver
+    private final OAuth2AuthorizationRequestResolver customAuthorizationRequestResolver;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -70,7 +78,7 @@ public class SecurityConfig {
                         // 외부 접근 차단
                         .requestMatchers("/api/v1/ocr/**").denyAll()
 
-                        // OCR 프록시: 로그인 필요
+                        // OCR 프록시: 로그인 필요 (의도적으로 명시)
                         .requestMatchers(HttpMethod.POST, "/api/trips/*/expenses/ocr/**").authenticated()
 
                         // Mate : 로그인 필요한 엔드포인트
@@ -86,7 +94,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/schedule-items/**").permitAll()
 
                         // 비로그인 사용자도 볼 수 있는 데이터 (Public API) GET 경로만 허용
-                        .requestMatchers(HttpMethod.GET, "/api/travelstory/**").permitAll()
+                        // .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/mate/**").permitAll()
 
                         // Swagger 경로 허용
@@ -107,6 +115,12 @@ public class SecurityConfig {
 
                 // OAuth2 로그인 설정
                 .oauth2Login(oauth -> oauth
+                        // 자동로그인 방지
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .authorizationRequestResolver(customAuthorizationRequestResolver)
+                        )
+                        // 로그인 실패 핸들러
+                        .failureHandler(oAuth2FailureHandler)
                         // 로그인 성공 -> 소셜 로그인 사용자 정보 로딩
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         // 로그인 성공 핸들러 -> JWT 토큰 발행 및 리다이렉트
