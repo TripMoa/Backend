@@ -29,12 +29,13 @@ public enum ErrorCode {
 
 
     // ====== User 도메인 ======
-
-    // 존재하지 않는 User 조회 시
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_404_001", "userId에 해당하는 사용자가 없습니다."),
-
-    // 이메일 정보가 제공되지 않은 경우
+    USER_FORBIDDEN(HttpStatus.FORBIDDEN, "USER_403_001", "접근할 수 없는 사용자입니다."),
+    BIRTH_DATE_REQUIRED(HttpStatus.BAD_REQUEST, "USER_400_001", "생년월일 등록 후 이용할 수 있습니다."),
+    ADULT_VERIFICATION_REQUIRED(HttpStatus.FORBIDDEN, "USER_403_002", "성인 인증 후 이용할 수 있습니다."),
+    UNDERAGE_USER(HttpStatus.FORBIDDEN, "USER_403_003", "미성년자는 이용할 수 없습니다."),
     OAUTH_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH_400_001", "이메일 정보 제공 동의가 필요합니다."),
+    USER_SANCTION_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_404_002", "사용자의 제재 정보를 찾을 수 없습니다."),
 
 
     // ====== Trip 도메인 ======
@@ -62,8 +63,6 @@ public enum ErrorCode {
 
 
     // ====== Expense 도메인 ======
-
-    // 존재하지 않는 Expense 조회 시
     EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPENSE_404_001", "expenseId에 해당하는 영수증이 없습니다."),
 
 
@@ -163,6 +162,9 @@ public enum ErrorCode {
     CANNOT_REPORT_SELF(HttpStatus.BAD_REQUEST, "REPORT_400_001", "자기 자신은 신고할 수 없습니다."),
     ALREADY_REPORTED(HttpStatus.CONFLICT, "REPORT_409_001", "이미 신고한 대상입니다."),
     REPORTED_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_404_001", "신고 대상 사용자를 찾을 수 없습니다."),
+    ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "USER_403_003", "신고 정책으로 정지된 계정입니다."),
+    INVALID_REPORT_TARGET(HttpStatus.BAD_REQUEST, "REPORT_400_002", "신고 대상 정보가 올바르지 않습니다."),
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "REPORT_404_002", "신고 대상 메시지를 찾을 수 없습니다."),
 
     // ====== 서버 내부 오류 ======
 
