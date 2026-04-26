@@ -1,5 +1,7 @@
 package com.tripmoa.security.oauth;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.security.jwt.JwtTokenProvider;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.service.AuthService;
@@ -54,7 +56,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String provider = oauthToken.getAuthorizedClientRegistrationId().toUpperCase();
 
         // 리프레시 토큰 생성 및 DB 저장
-        String refreshToken = authService.createAndSaveRefreshToken(user);
+        String refreshToken;
+
+        try {
+            refreshToken = authService.createAndSaveRefreshToken(user);
+        } catch (BusinessException e) {
+            if (e.getErrorCode() == ErrorCode.ACCOUNT_SUSPENDED) {
+                getRedirectStrategy().sendRedirect(
+                        request,
+                        response,
+                        redirectBaseUrl + "/login?error=SUSPENDED"
+                );
+                return;
+            }
+
+            getRedirectStrategy().sendRedirect(
+                    request,
+                    response,
+                    redirectBaseUrl + "/login?error=true"
+            );
+            return;
+        }
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
