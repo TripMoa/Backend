@@ -5,6 +5,7 @@ import com.tripmoa.voucher.dto.VoucherCreateRequest;
 import com.tripmoa.voucher.dto.VoucherUpdateRequest;
 import com.tripmoa.voucher.dto.VoucherResponse;
 import com.tripmoa.voucher.service.VoucherService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@Tag(name = "Voucher", description = "바우처 관리 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/trips/{tripId}/vouchers")
