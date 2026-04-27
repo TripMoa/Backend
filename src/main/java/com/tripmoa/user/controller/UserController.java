@@ -1,10 +1,9 @@
 package com.tripmoa.user.controller;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.security.principal.CustomUserDetails;
-import com.tripmoa.user.dto.CheckEmailRequest;
-import com.tripmoa.user.dto.CheckEmailResponse;
-import com.tripmoa.user.dto.UserResponseDto;
-import com.tripmoa.user.dto.UserUpdateRequestDto;
+import com.tripmoa.user.dto.*;
 import com.tripmoa.user.service.AuthService;
 import com.tripmoa.user.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,7 +53,11 @@ public class UserController {
 
     // 가입 확인 Post
     @PostMapping("/users/check-email")
-    public CheckEmailResponse checkEmail(@RequestBody CheckEmailRequest request) {
+    public CheckEmailResponse checkEmail(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody CheckEmailRequest request
+    ) {
+        if (userDetails == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         return userService.checkEmail(request.getEmail());
     }
 
@@ -62,6 +65,14 @@ public class UserController {
     @PatchMapping("/users/me") // 경로를 /nickname에서 /me로 변경 제안
     public void updateProfile(@AuthenticationPrincipal CustomUserDetails userDetails, @RequestBody UserUpdateRequestDto request) {
         userService.updateUserInfo(userDetails.getUser().getId(), request);
+    }
+
+    // 성인 인증 Patch
+    @PatchMapping("/users/me/age-verification")
+    public AgeVerificationResponseDto verifyAdult(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return userService.verifyAdult(userDetails.getUser().getId());
     }
 
     // 회원 탈퇴 Delete

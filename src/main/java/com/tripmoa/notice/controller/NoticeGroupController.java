@@ -5,6 +5,7 @@ import com.tripmoa.notice.dto.request.NoticeGroupCreateRequest;
 import com.tripmoa.notice.dto.request.NoticeGroupRenameRequest;
 import com.tripmoa.notice.dto.response.NoticeGroupResponse;
 import com.tripmoa.notice.service.NoticeGroupService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "NoticeGroup", description = "공지사항 그룹 관리 API")
 @RestController
 @RequestMapping("/api/trips/{tripId}/notice-groups")
 @RequiredArgsConstructor

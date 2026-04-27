@@ -8,17 +8,17 @@ import java.util.List;
 // 정보 수정 요청 DTO
 
 @Getter
-@Setter // 값 주입을 위해 필요할 수 있음
+@Setter
 public class UserUpdateRequestDto {
-    public String nickname;
-    public String name;
-    public String notificationEmail;
-    public String gender;
-    public String birthDate;
-    public String mbti;
-    public List<String> travelStyles;
-    public String profileImage;
-    public String profileType;
-    public String avatarEmoji;
-    public String avatarColor;
+    private String nickname;
+    private String name;
+    private String notificationEmail;
+    private String gender;
+    private String birthDate;
+    private String mbti;
+    private List<String> travelStyles;
+    private String profileImage;
+    private String profileType;
+    private String avatarEmoji;
+    private String avatarColor;
 }
