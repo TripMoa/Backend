@@ -1,5 +1,7 @@
 package com.tripmoa.user.controller;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.service.AuthService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,9 +29,12 @@ public class AuthController {
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response
     ) {
-        // 토큰이 없는 경우 처리
+        // 토큰이 없는 경우 비로그인 상태
         if (refreshToken == null || refreshToken.isBlank()) {
-            return ResponseEntity.ok(Map.of("authenticated", false));
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", false,
+                    "reason", "UNAUTHENTICATED"
+            ));
         }
 
         try {
@@ -52,8 +57,8 @@ public class AuthController {
                     "authenticated", true
             ));
 
-        } catch (RuntimeException e) {
-            // 토큰 만료/위조 등 예상된 케이스 → 쿠키 삭제 + authenticated: false
+        } catch (BusinessException e) {
+            // 인증 유지 불가 상황 → Refresh 쿠키 제거 후 상태값과 함께 응답
             ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
                     .secure(false)
@@ -63,10 +68,37 @@ public class AuthController {
                     .build();
             response.addHeader("Set-Cookie", deleteCookie.toString());
 
-            return ResponseEntity.ok(Map.of("authenticated", false));
+            if (e.getErrorCode() == ErrorCode.ACCOUNT_SUSPENDED) {
+                return ResponseEntity.ok(Map.of(
+                        "authenticated", false,
+                        "reason", "SUSPENDED",
+                        "message", "신고 정책으로 정지된 계정입니다."
+                ));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", false,
+                    "reason", "UNAUTHENTICATED"
+            ));
+
+        } catch (RuntimeException e) {
+            // 토큰 만료/위조 등 일반 인증 실패
+            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                    .httpOnly(true)
+                    .secure(false)
+                    .path("/")
+                    .sameSite("Lax")
+                    .maxAge(0)
+                    .build();
+            response.addHeader("Set-Cookie", deleteCookie.toString());
+
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", false,
+                    "reason", "UNAUTHENTICATED"
+            ));
 
         } catch (Exception e) {
-            // DB 장애 등 서버 오류 → 쿠키 건드리지 않고 500 반환
+            // DB 장애 등 예상하지 못한 서버 오류
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

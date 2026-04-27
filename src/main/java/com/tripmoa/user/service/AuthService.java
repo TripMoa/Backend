@@ -1,5 +1,7 @@
 package com.tripmoa.user.service;
 
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.security.jwt.JwtTokenProvider;
 import com.tripmoa.user.entity.RefreshToken;
 import com.tripmoa.user.entity.User;
@@ -20,11 +22,14 @@ public class AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserRepository userRepository;
+    private final UserGuardService userGuardService;
+
 
     // 로그인 시 리프레시 토큰 저장/갱신
     @Transactional
     public String createAndSaveRefreshToken(User user) {
+        validateActiveUser(user);
+
         String refreshTokenValue = jwtTokenProvider.createRefreshToken(user.getId());
         LocalDateTime expiryDate = LocalDateTime.now().plusDays(14);
 
@@ -32,9 +37,10 @@ public class AuthService {
                 .orElse(null);
 
         if (refreshToken != null) {
+            // 기존 토큰이 있으면 값과 만료일만 갱신
             refreshToken.updateToken(refreshTokenValue, expiryDate);
         } else {
-            // 새로운 토큰 저장
+            // 기존 토큰이 없으면 새로 저장
             refreshTokenRepository.save(new RefreshToken(user, refreshTokenValue, expiryDate));
         }
 
@@ -44,8 +50,7 @@ public class AuthService {
     // 로그아웃 시 DB 토큰 삭제 로직 추가
     @Transactional
     public void logout(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+        User user = userGuardService.getUserOr404(userId);
         refreshTokenRepository.deleteByUser(user);
     }
 
@@ -64,10 +69,15 @@ public class AuthService {
 
         User user = storedToken.getUser();
 
-        if (user.getStatus() != UserStatus.ACTIVE) {
+        // 정지/탈퇴 등 비활성 사용자 차단
+        if (user.getStatus() == UserStatus.SUSPENDED) {
             refreshTokenRepository.delete(storedToken);
             refreshTokenRepository.flush();
-            throw new RuntimeException("비활성 사용자입니다.");
+            throw new BusinessException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            refreshTokenRepository.delete(storedToken);
+            throw new BusinessException(ErrorCode.USER_FORBIDDEN);
         }
 
         // 토큰 발급
@@ -81,5 +91,21 @@ public class AuthService {
         tokens.put("accessToken", newAccess);
         tokens.put("refreshToken", newRefresh);
         return tokens;
+    }
+
+    // 로그인 가능한 사용자 상태인지 확인
+    private void validateActiveUser(User user) {
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            RefreshToken storedToken = refreshTokenRepository.findByUser(user).orElse(null);
+            if (storedToken != null) {
+                refreshTokenRepository.delete(storedToken);
+                refreshTokenRepository.flush();
+            }
+            throw new BusinessException(ErrorCode.ACCOUNT_SUSPENDED);
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.USER_FORBIDDEN);
+        }
     }
 }
