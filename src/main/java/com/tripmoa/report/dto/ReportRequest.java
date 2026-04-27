@@ -1,5 +1,6 @@
-package com.tripmoa.report;
+package com.tripmoa.report.dto;
 
+import com.tripmoa.report.ReportLocation;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -22,6 +23,4 @@ public class ReportRequest {
     private String reason;
 
     private String detail;
-    private String contentSnapshot;
-    private String reportedNickname;
 }
