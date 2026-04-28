@@ -5,7 +5,11 @@ import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.style.Style;
 import com.tripmoa.style.StyleRepository;
 import com.tripmoa.style.UserStyle;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.entity.TripMember;
+import com.tripmoa.trip.enums.TripStatus;
 import com.tripmoa.trip.repository.TripMemberRepository;
+import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.user.dto.AgeVerificationResponseDto;
 import com.tripmoa.user.dto.CheckEmailResponse;
 import com.tripmoa.user.dto.UserResponseDto;
@@ -39,6 +43,7 @@ public class UserService {
     private final SocialAccountRepository socialAccountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserGuardService userGuardService;
+    private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
 
     // 내 정보 조회
@@ -157,6 +162,9 @@ public class UserService {
     // 회원 탈퇴
     public void withdraw(Long userId) {
         User user = userGuardService.getActiveUserOr403(userId);
+        
+        // 여행 계획 소유권 양도
+        handleOwnedTripsOnWithdraw(userId);
 
         // 리프레쉬 토큰 삭제 (보안 및 세션 만료)
         refreshTokenRepository.deleteByUser(user);
@@ -188,6 +196,28 @@ public class UserService {
         user.setAgeVerified(false);
 
         userRepository.save(user);
+    }
+
+    private void handleOwnedTripsOnWithdraw(Long userId) {
+        List<Trip> ownedTrips =
+                tripRepository.findAllByOwner_IdAndStatusOrderByCreatedAtDesc(userId, TripStatus.ACTIVE);
+
+        for (Trip trip : ownedTrips) {
+            List<TripMember> members =
+                    tripMemberRepository.findAllByTrip_IdOrderBySortOrderAsc(trip.getId());
+
+            TripMember nextOwner = members.stream()
+                    .filter(member -> member.getUser() != null)
+                    .filter(member -> !member.getUser().getId().equals(userId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (nextOwner == null) {
+                trip.archive();
+            } else {
+                trip.changeOwner(nextOwner.getUser());
+            }
+        }
     }
 
 }
