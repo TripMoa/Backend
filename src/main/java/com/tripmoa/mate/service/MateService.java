@@ -5,19 +5,17 @@ import com.tripmoa.mate.domain.MatePost;
 import com.tripmoa.mate.domain.MateDomain;
 import com.tripmoa.mate.dto.MateRequest;
 import com.tripmoa.mate.dto.MateResponse;
-import com.tripmoa.mate.repository.ApplicationRepository;
 import com.tripmoa.mate.repository.MateRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
+import com.tripmoa.matetag.event.MatePostCreatedEvent;
 import com.tripmoa.user.entity.User;
-import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -34,6 +32,7 @@ public class MateService {
     private final ViewCountService viewCountService;
     private final MateDomain domain;
     private final BadWordFilter badWordFilter;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public List<MateResponse> getMatePosts(Long userId) {
         List<MatePost> matePosts = mateRepository.findAllWithUser();
@@ -75,6 +74,15 @@ public class MateService {
 
         domain.validateCreate(post);
         mateRepository.save(post);
+        applicationEventPublisher.publishEvent(
+                new MatePostCreatedEvent(
+                        post.getId(),
+                        post.getContent(),
+                        post.getDestination(),
+                        post.getBudget(),
+                        post.getMaxParticipant(),
+                        post.getStartDate(),
+                        post.getEndDate()));
         return MateResponse.from(post);
     }
 
