@@ -125,4 +125,28 @@ public class TripController {
         tripCommandService.deleteTrip(tripId, userId);
         return ResponseEntity.noContent().build();
     }
+
+    // 여행 나가기
+    @DeleteMapping("/{tripId}/members/me")
+    public ResponseEntity<Void> leaveTrip(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        tripCommandService.leaveTrip(tripId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 멤버 내보내기 / 탈퇴 유저 기록정리
+    @DeleteMapping("/{tripId}/members/{memberId}")
+    public ResponseEntity<Void> removeTripMember(
+            @PathVariable Long tripId,
+            @PathVariable Long memberId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        tripCommandService.removeTripMember(tripId, memberId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
 }
