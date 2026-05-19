@@ -31,6 +31,21 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     // 여행 목록 조회 시 여행마다 멤버를 개별 조회하지 않고 한 번에 가져와 N+1 문제를 방지하기 위한 메서드
     List<TripMember> findAllByTrip_IdInOrderByTrip_IdAscSortOrderAsc(List<Long> tripIds);
 
+    // 특정 여행의 멤버 수 조회
+    int countByTrip_Id(Long tripId);
+
+    // 특정 여행에 아직 멤버가 남아있는지 확인
+    boolean existsByTrip_Id(Long tripId);
+
+    // 특정 여행에서 특정 유저의 TripMember 조회
+    Optional<TripMember> findByTrip_IdAndUser_Id(Long tripId, Long userId);
+
+    // 나가는/삭제되는 멤버를 제외하고 다음 소유주 후보 조회
+    Optional<TripMember> findFirstByTrip_IdAndIdNotAndUserIsNotNullOrderBySortOrderAsc(
+            Long tripId,
+            Long memberId
+    );
+
     // 회원 탈퇴 시, 해당 유저가 참여 중이던 모든 여행 멤버 닉네임을 익명 처리
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

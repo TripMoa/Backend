@@ -25,4 +25,7 @@ public interface DepositLogRepository extends JpaRepository<DepositLog, Long> {
     // 특정 여행의 특정 상태 입금 로그 조회
     List<DepositLog> findAllByTrip_IdAndDepositStatus(Long tripId, DepositLogStatus depositStatus);
 
+    // 특정 여행(tripId)에 입금 데이터가 하나라도 존재하는지 확인
+    boolean existsByTrip_Id(Long tripId);
+
 }

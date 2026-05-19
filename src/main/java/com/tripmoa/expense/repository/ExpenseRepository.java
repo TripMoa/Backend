@@ -50,4 +50,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             """)
     Optional<Expense> findDetailByTripIdAndExpenseId(Long tripId, Long expenseId);
 
+    // 특정 여행(tripId)에 지출 데이터가 하나라도 존재하는지 확인
+    boolean existsByTrip_Id(Long tripId);
+
 }
