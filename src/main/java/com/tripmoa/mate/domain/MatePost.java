@@ -8,6 +8,7 @@ import com.tripmoa.matetag.domain.MatePostTag;
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,6 +69,7 @@ public class MatePost {
     private AgeGroup ageGroup;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "post")
+    @BatchSize(size = 20)
     @Builder.Default
     private List<MatePostTag> tags = new ArrayList<>();
 
