@@ -58,4 +58,9 @@ public class TripMember {
     public void updateNickname(String nickname) {
         this.nickname = nickname;
     }
+
+    public void updateSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
 }
