@@ -2,9 +2,9 @@ package com.tripmoa.expense.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tripmoa.expense.dto.request.OcrAiAutofillResult;
 import com.tripmoa.expense.dto.response.OcrAutofillResponse;
 import com.tripmoa.expense.dto.response.OcrInitialResponse;
-import com.tripmoa.expense.enums.ExpenseCategory;
 import com.tripmoa.expense.enums.PayMethod;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +17,22 @@ public class OcrMapper {
 
     private final ObjectMapper objectMapper;
 
+    // OCR 후처리 데이터 + LLM 판단 결과를 최종 자동채움 응답으로 조립
+    public OcrAutofillResponse toAutofillResponse(
+            OcrInitialResponse base,
+            OcrAiAutofillResult aiResult
+    ) {
+        return new OcrAutofillResponse(
+                base.storeName(),
+                aiResult.itemMemo(),
+                aiResult.category(),
+                PayMethod.fromText(base.paymentMethod()),
+                base.dateTime(),
+                base.totalAmount()
+        );
+    }
+
+    // 데이터 후처리 가공
     public OcrInitialResponse toAutofillResponse(Map<String, Object> ocrRaw) {
         JsonNode root = objectMapper.valueToTree(ocrRaw);
 
@@ -88,20 +104,6 @@ public class OcrMapper {
         } catch (NumberFormatException e) {
             return null;
         }
-    }
-
-    // 임시 자동채움
-    public OcrAutofillResponse toAutofillResult(Map<String, Object> ocrRaw) {
-        OcrInitialResponse base = toAutofillResponse(ocrRaw);
-
-        return new OcrAutofillResponse(
-                base.storeName(),
-                base.menuName(),                       // menuName → itemMemo
-                ExpenseCategory.ETC,                   // 고정
-                PayMethod.fromText(base.paymentMethod()),
-                base.dateTime(),                       // dateTime → paidAt
-                base.totalAmount()
-        );
     }
 
 }
