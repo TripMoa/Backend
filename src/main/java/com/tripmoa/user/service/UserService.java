@@ -8,13 +8,15 @@ import com.tripmoa.style.UserStyle;
 import com.tripmoa.trip.entity.Trip;
 import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.trip.enums.TripStatus;
+import com.tripmoa.trip.enums.TripVisibility;
 import com.tripmoa.trip.repository.TripMemberRepository;
 import com.tripmoa.trip.repository.TripRepository;
+import com.tripmoa.trip.service.TripCommandService;
+import com.tripmoa.trip.service.TripMemberOrderService;
 import com.tripmoa.user.dto.AgeVerificationResponseDto;
 import com.tripmoa.user.dto.CheckEmailResponse;
 import com.tripmoa.user.dto.UserResponseDto;
 import com.tripmoa.user.dto.UserUpdateRequestDto;
-import com.tripmoa.user.entity.SocialAccount;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.enums.AgeVerificationStatus;
 import com.tripmoa.user.enums.Gender;
@@ -23,10 +25,9 @@ import com.tripmoa.user.enums.UserStatus;
 import com.tripmoa.user.repository.RefreshTokenRepository;
 import com.tripmoa.user.repository.SocialAccountRepository;
 import com.tripmoa.user.repository.UserRepository;
-import com.tripmoa.user.repository.UserSanctionRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -45,6 +46,8 @@ public class UserService {
     private final UserGuardService userGuardService;
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final TripMemberOrderService tripMemberOrderService;
+    private final TripCommandService tripCommandService;
 
     // 내 정보 조회
     public UserResponseDto getMyInfo(Long userId) {
@@ -160,11 +163,12 @@ public class UserService {
     }
 
     // 회원 탈퇴
+    @Transactional
     public void withdraw(Long userId) {
         User user = userGuardService.getActiveUserOr403(userId);
-        
-        // 여행 계획 소유권 양도
-        handleOwnedTripsOnWithdraw(userId);
+
+        // 회원 탈퇴 전 여행 정리
+        handleTripsOnWithdraw(userId);
 
         // 리프레쉬 토큰 삭제 (보안 및 세션 만료)
         refreshTokenRepository.deleteByUser(user);
@@ -181,8 +185,7 @@ public class UserService {
         user.setStatus(UserStatus.WITHDRAWN);
 
         // 개인정보 익명화 (Null 처리 또는 마스킹)
-        user.setNickname("알수 없음");      // 화면 표시용
-        tripMemberRepository.updateNicknameByUserId(userId, "알수 없음");
+        user.setNickname("알수 없음");
         user.setName(null);
         user.setEmail(null);              // TODO : 중복 가입 방지를 위해 필요한 경우 마스킹 처리 (예: wh***@mail.com)
         user.setNotificationEmail(null);
@@ -195,28 +198,44 @@ public class UserService {
         user.setAvatarColor("#9CA3AF");
         user.setAgeVerified(false);
 
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
     }
 
-    private void handleOwnedTripsOnWithdraw(Long userId) {
+    private void handleTripsOnWithdraw(Long userId) {
+        // 내가 소유한 ACTIVE 여행
         List<Trip> ownedTrips =
-                tripRepository.findAllByOwner_IdAndStatusOrderByCreatedAtDesc(userId, TripStatus.ACTIVE);
+                tripRepository.findAllByOwner_IdAndStatusOrderByCreatedAtDesc(
+                        userId,
+                        TripStatus.ACTIVE
+                );
 
+        // 내가 멤버로 참여한 ACTIVE 여행
+        List<Trip> invitedTrips =
+                tripRepository.findAllInvitedTripsByUserIdAndStatus(
+                        userId,
+                        TripStatus.ACTIVE
+                );
+
+        // PRIVATE 여행은 archive 처리
         for (Trip trip : ownedTrips) {
-            List<TripMember> members =
-                    tripMemberRepository.findAllByTrip_IdOrderBySortOrderAsc(trip.getId());
+            if (trip.getVisibility() == TripVisibility.PRIVATE) {
+                TripMember member = tripMemberRepository.findByTrip_IdAndUser_Id(trip.getId(), userId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_MEMBER_NOT_FOUND));
 
-            TripMember nextOwner = members.stream()
-                    .filter(member -> member.getUser() != null)
-                    .filter(member -> !member.getUser().getId().equals(userId))
-                    .findFirst()
-                    .orElse(null);
+                tripMemberRepository.delete(member);
+                tripMemberRepository.flush();
 
-            if (nextOwner == null) {
                 trip.archive();
-            } else {
-                trip.changeOwner(nextOwner.getUser());
+                continue;
             }
+
+            // PUBLIC 여행 소유주인 경우
+            tripCommandService.deleteTrip(trip.getId(), userId);
+        }
+
+        // 초대받은 여행 / PUBLIC 멤버인 경우
+        for (Trip trip : invitedTrips) {
+            tripCommandService.leaveTrip(trip.getId(), userId);
         }
     }
 
