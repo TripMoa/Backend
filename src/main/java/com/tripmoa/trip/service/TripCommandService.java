@@ -4,6 +4,8 @@ import com.tripmoa.expense.entity.SettlementSetting;
 import com.tripmoa.expense.enums.PaymentMode;
 import com.tripmoa.expense.enums.PoolBalancePolicy;
 import com.tripmoa.expense.enums.SplitRemainderPolicy;
+import com.tripmoa.expense.repository.DepositLogRepository;
+import com.tripmoa.expense.repository.ExpenseRepository;
 import com.tripmoa.expense.repository.SettlementSettingRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
@@ -43,6 +45,9 @@ public class TripCommandService {
     private final NoticeGroupRepository noticeGroupRepository;
     private final NoticeItemRepository noticeItemRepository;
     private final NoticeTagRepository noticeTagRepository;
+    private final TripMemberOrderService tripMemberOrderService;
+    private final ExpenseRepository expenseRepository;
+    private final DepositLogRepository depositLogRepository;
 
     // 여행 생성
     public TripDetailResponse createTrip(Long userId, TripCreateRequest request) {
@@ -304,12 +309,144 @@ public class TripCommandService {
         return TripMemberResponse.from(member);
     }
 
-    // 여행 삭제 -> 실제 삭제 X, ARCHIVED 처리
+    // 여행 삭제
     public void deleteTrip(Long tripId, Long userId) {
         tripPermissionService.assertOwner(tripId, userId);
+        assertNoSettlementData(tripId);
 
         Trip trip = tripPermissionService.getTripOr404(tripId);
-        trip.archive();
+
+        // 삭제 전 전체 멤버 수 조회
+        int beforeMemberCount = tripMemberRepository.countByTrip_Id(tripId);
+
+        // 소유주 혼자 남은 여행은 TripMember 행 삭제 없이 ARCHIVED 처리
+        if (beforeMemberCount == 1) {
+            trip.archive();
+            return;
+        }
+
+        TripMember ownerMember = getMemberByTripAndUser(tripId, userId);
+
+        // 멤버가 남아 있으면 다음 멤버에게 소유권 자동 양도
+        transferOwnerIfPossible(trip, ownerMember.getId());
+
+        // 기존 소유주 TripMember 행 삭제
+        tripMemberRepository.delete(ownerMember);
+        tripMemberRepository.flush();
+
+        // 삭제 후 남은 멤버 수에 따라 PUBLIC/PRIVATE 전환 및 재정렬
+        applyVisibilityAndOrderAfterMemberRemoval(trip);
+    }
+
+    // 여행 나가기
+    public void leaveTrip(Long tripId, Long userId) {
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+        assertNoSettlementData(tripId);
+
+        Trip trip = tripPermissionService.getTripOr404(tripId);
+        TripMember member = getMemberByTripAndUser(tripId, userId);
+
+        boolean isOwner = trip.getOwner().getId().equals(userId);
+
+        // 삭제 전 전체 멤버 수 조회
+        int beforeMemberCount = tripMemberRepository.countByTrip_Id(tripId);
+
+        // 소유주 혼자 남은 여행은 TripMember 행 삭제 없이 ARCHIVED 처리
+        if (isOwner && beforeMemberCount == 1) {
+            trip.archive();
+            return;
+        }
+
+        // 소유주가 나가는 경우 다음 멤버에게 소유권 자동 양도
+        if (isOwner) {
+            transferOwnerIfPossible(trip, member.getId());
+        }
+
+        // 나가는 사용자의 행 삭제
+        tripMemberRepository.delete(member);
+        tripMemberRepository.flush();
+
+        // 삭제 후 남은 멤버 수에 따라 PUBLIC/PRIVATE 전환 및 재정렬
+        applyVisibilityAndOrderAfterMemberRemoval(trip);
+    }
+
+    // 멤버 내보내기
+    public void removeTripMember(Long tripId, Long memberId, Long ownerId) {
+        tripPermissionService.assertOwner(tripId, ownerId);
+        assertNoSettlementData(tripId);
+
+        Trip trip = tripPermissionService.getTripOr404(tripId);
+
+        TripMember target = tripMemberRepository.findByIdAndTrip_Id(memberId, tripId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_MEMBER_NOT_FOUND));
+
+        if (target.getUser() != null && target.getUser().getId().equals(ownerId)) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "소유주는 내보낼 수 없습니다. 여행 나가기를 사용해주세요."
+            );
+        }
+
+        // 내보내는 사용자의 행 삭제
+        tripMemberRepository.delete(target);
+        tripMemberRepository.flush();
+
+        applyVisibilityAndOrderAfterMemberRemoval(trip);
+    }
+
+    // 특정 여행에서 특정 사용자의 TripMember 조회
+    private TripMember getMemberByTripAndUser(Long tripId, Long userId) {
+        return tripMemberRepository.findByTrip_IdAndUser_Id(tripId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_MEMBER_NOT_FOUND));
+    }
+
+    // 여행 지출 또는 입금 내역 존재 여부 확인
+    private void assertNoSettlementData(Long tripId) {
+        boolean hasExpense = expenseRepository.existsByTrip_Id(tripId);
+        boolean hasDeposit = depositLogRepository.existsByTrip_Id(tripId);
+
+        if (hasExpense || hasDeposit) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "지출 또는 입금 내역이 있는 여행에서는 실행 할 수 없습니다."
+            );
+        }
+    }
+
+    // 현재 소유주가 빠질 때 다음 멤버에게 소유권을 자동 양도
+    private void transferOwnerIfPossible(Trip trip, Long leavingMemberId) {
+        TripMember nextOwner = tripMemberRepository
+                .findFirstByTrip_IdAndIdNotAndUserIsNotNullOrderBySortOrderAsc(
+                        trip.getId(),
+                        leavingMemberId
+                )
+                .orElse(null);
+
+        if (nextOwner == null) {
+            return;
+        }
+
+        trip.changeOwner(nextOwner.getUser());
+    }
+
+    // 멤버 삭제 후 남은 멤버 수에 따라 공개 여부와 정렬 순서를 정리
+    private void applyVisibilityAndOrderAfterMemberRemoval(Trip trip) {
+        Long tripId = trip.getId();
+
+        int memberCount = tripMemberRepository.countByTrip_Id(tripId);
+
+        if (memberCount == 0) {
+            trip.archive();
+            return;
+        }
+
+        if (memberCount == 1) {
+            trip.updateVisibility(TripVisibility.PRIVATE);
+        } else {
+            trip.updateVisibility(TripVisibility.PUBLIC);
+        }
+
+        tripMemberOrderService.reorder(tripId);
     }
 
     private void validateTripDates(java.time.LocalDate startDate, java.time.LocalDate endDate) {
@@ -324,5 +461,6 @@ public class TripCommandService {
         }
         return "사용자";
     }
+
 }
 
