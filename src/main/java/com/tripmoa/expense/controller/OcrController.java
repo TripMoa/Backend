@@ -2,10 +2,7 @@ package com.tripmoa.expense.controller;
 
 import com.tripmoa.expense.dto.request.OcrAutofillRequest;
 import com.tripmoa.expense.dto.response.OcrAutofillWithPreviewResponse;
-import com.tripmoa.expense.dto.response.OcrInitialResponse;
-import com.tripmoa.expense.service.OcrMapper;
 import com.tripmoa.expense.service.OcrService;
-import com.tripmoa.trip.service.TripPermissionService;
 import com.tripmoa.security.principal.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -29,35 +26,10 @@ import java.util.Map;
 public class OcrController {
 
     private final OcrService ocrService;
-    private final OcrMapper ocrMapper;
-    private final TripPermissionService tripPermissionService;
 
     /**
-     * OCR 자동채움 (프론트용)
-     * - tripId 기반 권한 체크(여행 멤버 여부 등) 후 OCR 호출
-     * - Swagger 파일 파라미터
-     */
-    @PostMapping(value="/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<OcrInitialResponse> ocrAutofill(
-            @PathVariable Long tripId,
-            @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        Long userId = userDetails.getUser().getId();
-
-        ocrService.validateFile(file);
-        tripPermissionService.assertOwnerOrMember(tripId, userId);
-
-        Map<String, Object> raw = ocrService.callOcrApi(file);
-        OcrInitialResponse dto = ocrMapper.toAutofillResponse(raw);
-
-        return ResponseEntity.ok(dto);
-    }
-
-    /**
-     * OCR 자동채움 Test
-     * - OCR 결과로 자동채움 데이터를 만들고
-     * - 현재 모달 입력값 기준으로 첫 split preview도 함께 반환
+     * OCR 자동채움
+     * - OCR 결과로 자동채움 + 데이터 후처리 + LLM 연결
      */
     @Operation(summary = "OCR + preview 테스트")
     @RequestBody(
@@ -66,8 +38,8 @@ public class OcrController {
                     encoding = @Encoding(name = "request", contentType = MediaType.APPLICATION_JSON_VALUE)
             )
     )
-    @PostMapping(value = "/ocr/test", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<OcrAutofillWithPreviewResponse> ocrAutofillTest(
+    @PostMapping(value = "/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<OcrAutofillWithPreviewResponse> ocrAutofill(
             @PathVariable Long tripId,
             @RequestPart("file") MultipartFile file,
             @RequestPart("request") @Valid OcrAutofillRequest request,

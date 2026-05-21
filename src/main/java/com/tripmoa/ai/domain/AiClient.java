@@ -2,6 +2,8 @@ package com.tripmoa.ai.domain;
 
 import com.tripmoa.ai.dto.AiScheduleRequest;
 import com.tripmoa.ai.dto.AiScheduleResponse;
+import com.tripmoa.expense.dto.request.OcrLlmRequest;
+import com.tripmoa.expense.dto.response.OcrLlmResponse;
 import com.tripmoa.place.dto.PlaceSearchResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,4 +43,11 @@ public class AiClient {
                 .toUri();
         return restTemplate.getForObject(uri, PlaceSearchResponse.class);
     }
+
+    // OCR 영수증 LLM 분석
+    public OcrLlmResponse analyzeReceipt(OcrLlmRequest request) {
+        String url = aiServerUrl + "/ocr/analyze";
+        return restTemplate.postForObject(url, request, OcrLlmResponse.class);
+    }
+
 }

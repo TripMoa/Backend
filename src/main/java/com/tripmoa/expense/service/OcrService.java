@@ -1,10 +1,12 @@
 package com.tripmoa.expense.service;
 
 import com.tripmoa.expense.dto.request.ExpensePreviewRequest;
+import com.tripmoa.expense.dto.request.OcrAiAutofillResult;
 import com.tripmoa.expense.dto.request.OcrAutofillRequest;
 import com.tripmoa.expense.dto.response.ExpensePreviewResponse;
 import com.tripmoa.expense.dto.response.OcrAutofillResponse;
 import com.tripmoa.expense.dto.response.OcrAutofillWithPreviewResponse;
+import com.tripmoa.expense.dto.response.OcrInitialResponse;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.trip.service.TripPermissionService;
@@ -55,6 +57,7 @@ public class OcrService {
     private final TripPermissionService tripPermissionService;
     private final OcrMapper ocrMapper;
     private final SettlementPreviewService settlementPreviewService;
+    private final OcrAiAutofillService ocrAiAutofillService;
 
     // 프록시 컨트롤러에서 먼저 호출할 파일 검증
     public void validateFile(MultipartFile file) {
@@ -87,7 +90,12 @@ public class OcrService {
         tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         Map<String, Object> raw = callOcrApi(file);
-        OcrAutofillResponse autofill = ocrMapper.toAutofillResult(raw);
+
+        OcrInitialResponse base = ocrMapper.toAutofillResponse(raw);
+        OcrAiAutofillResult aiResult = ocrAiAutofillService.guessItemAndCategory(base);
+
+        OcrAutofillResponse autofill =
+                ocrMapper.toAutofillResponse(base, aiResult);
 
         Integer totalAmount = autofill.totalAmount();
         if (totalAmount == null || totalAmount <= 0) {
@@ -219,4 +227,5 @@ public class OcrService {
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
+
 }
