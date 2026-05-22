@@ -4,10 +4,12 @@ import com.tripmoa.mate.enums.AgeGroup;
 import com.tripmoa.mate.enums.GenderPreference;
 import com.tripmoa.mate.domain.MatePost;
 import com.tripmoa.mate.enums.Transport;
+import com.tripmoa.matetag.dto.MateTagResponse;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder
 @Getter
@@ -26,7 +28,7 @@ public class MateResponse {
     private Transport transport;
     private GenderPreference genderPreference;
     private AgeGroup ageGroup;
-//    private Set<Tag> tags;
+    private List<MateTagResponse> tags;
     private Long likesCount;
     private Long viewsCount;
     private LocalDateTime createdAt;
@@ -48,6 +50,9 @@ public class MateResponse {
                 .transport(matePost.getTransport())
                 .genderPreference(matePost.getGenderPreference())
                 .ageGroup(matePost.getAgeGroup())
+                .tags(matePost.getTags().stream()
+                    .map(pt -> new MateTagResponse(pt.getTag().getName(), pt.getTag().getCategory()))
+                    .toList())
                 .likesCount(matePost.getLikesCount())
                 .viewsCount(matePost.getViewsCount())
                 .createdAt(matePost.getCreatedAt())

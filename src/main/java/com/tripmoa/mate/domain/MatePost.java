@@ -4,13 +4,17 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.tripmoa.mate.enums.AgeGroup;
 import com.tripmoa.mate.enums.GenderPreference;
 import com.tripmoa.mate.enums.Transport;
+import com.tripmoa.matetag.domain.MatePostTag;
 import com.tripmoa.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Builder
@@ -64,8 +68,10 @@ public class MatePost {
     @Enumerated(EnumType.STRING)
     private AgeGroup ageGroup;
 
-//    @Enumerated(EnumType.STRING)
-//    private Set<Tag> tags;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "post")
+    @BatchSize(size = 20)
+    @Builder.Default
+    private List<MatePostTag> tags = new ArrayList<>();
 
     // 조회수, 좋아요
     @Column
