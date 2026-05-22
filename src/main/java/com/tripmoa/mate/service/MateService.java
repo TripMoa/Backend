@@ -78,11 +78,7 @@ public class MateService {
                 new MatePostCreatedEvent(
                         post.getId(),
                         post.getContent(),
-                        post.getDestination(),
-                        post.getBudget(),
-                        post.getMaxParticipant(),
-                        post.getStartDate(),
-                        post.getEndDate()));
+                        post.getDestination()));
         return MateResponse.from(post);
     }
 

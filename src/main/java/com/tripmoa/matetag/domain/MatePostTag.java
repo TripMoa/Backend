@@ -6,11 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name="mate_post_tag")
 @Getter
 @Builder
 @NoArgsConstructor
@@ -28,7 +28,6 @@ public class MatePostTag {
     @ManyToOne(fetch=FetchType.LAZY)
     @MapsId("tagId")
     @JoinColumn(name="mate_tag_id", nullable=false)
-    @BatchSize(size = 20)
     private MateTag tag;
 
     private Boolean isAiGenerated = true;

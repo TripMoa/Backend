@@ -1,5 +1,7 @@
 package com.tripmoa.matetag.event;
 
+import com.tripmoa.mate.domain.MatePost;
+import com.tripmoa.mate.repository.MateRepository;
 import com.tripmoa.matetag.client.FastApiTagClient;
 import com.tripmoa.matetag.domain.MatePostTag;
 import com.tripmoa.matetag.domain.MatePostTagId;
@@ -27,6 +29,7 @@ public class MateTagEventListener {
     private final FastApiTagClient fastApiTagClient;
     private final MateTagRepository tagRepository;
     private final MatePostTagRepository postTagRepository;
+    private final MateRepository mateRepository;
 
     @Async
     @TransactionalEventListener(phase=AFTER_COMMIT)
@@ -36,11 +39,7 @@ public class MateTagEventListener {
                     new FastApiTagRequest(
                             event.postId(),
                             event.content(),
-                            event.destination(),
-                            event.budget(),
-                            event.memberCount(),
-                            event.startDate(),
-                            event.endDate()
+                            event.destination()
                     )
             );
 
@@ -49,10 +48,12 @@ public class MateTagEventListener {
             tagNames.addAll(response.vibeTags());
 
             List<MateTag> tags = tagRepository.findByNameIn(tagNames);
+            MatePost postRef = mateRepository.getReferenceById(event.postId());
 
             List<MatePostTag> postTags = tags.stream()
                     .map(tag -> MatePostTag.builder()
                             .id(new MatePostTagId(event.postId(), tag.getId()))
+                            .post(postRef)
                             .tag(tag)
                             .build())
                     .toList();
