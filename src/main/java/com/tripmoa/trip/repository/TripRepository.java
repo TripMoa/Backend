@@ -17,6 +17,9 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     // 활성화된 여행 조회
     Optional<Trip> findByIdAndStatus(Long id, TripStatus status);
 
+    // 초대코드로 활성화된 여행 조회
+    Optional<Trip> findByInviteCodeAndStatus(String inviteCode, TripStatus status);
+
     // 내가 소유한 여행 전체 조회
     List<Trip> findAllByOwner_IdAndStatusOrderByCreatedAtDesc(Long userId, TripStatus status);
 

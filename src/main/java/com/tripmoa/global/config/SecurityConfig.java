@@ -100,6 +100,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users/styles").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stories/{id}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/stories/{id}/view").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stories/{id}/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/mate/**").permitAll()
 

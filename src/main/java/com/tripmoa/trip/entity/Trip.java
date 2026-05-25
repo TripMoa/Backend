@@ -109,6 +109,10 @@ public class Trip {
         member.setTrip(null);
     }
 
+    public void changeOwner(User newOwner) {
+        this.owner = newOwner;
+    }
+
     public void updateBasicInfo(String title, LocalDate tripStartDate, LocalDate tripEndDate) {
         this.title = title;
         this.tripStartDate = tripStartDate;
