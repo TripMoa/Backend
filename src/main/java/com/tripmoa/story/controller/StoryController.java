@@ -1,6 +1,6 @@
 package com.tripmoa.story.controller;
 
-import com.tripmoa.story.dto.post.StoryCreateRequest;
+import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.dto.post.StoryResponse;
 import com.tripmoa.story.dto.post.StoryUpdateRequest;
 import com.tripmoa.story.service.StoryService;
@@ -56,7 +56,7 @@ public class StoryController {
     // 여행기 작성 (POST /api/stories)
     @PostMapping
     public ResponseEntity<StoryResponse> createStory(
-            @RequestBody StoryCreateRequest request,
+            @RequestBody StoryRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
