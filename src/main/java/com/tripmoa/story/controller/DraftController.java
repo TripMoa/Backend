@@ -1,8 +1,8 @@
 package com.tripmoa.story.controller;
 
-import com.tripmoa.story.dto.draft.DraftCreateRequest;
 import com.tripmoa.story.dto.draft.DraftResponse;
 import com.tripmoa.story.dto.draft.DraftUpdateRequest;
+import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.service.DraftService;
 import com.tripmoa.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class DraftController {
     // 임시저장 생성 (POST /api/drafts)
     @PostMapping
     public ResponseEntity<DraftResponse> createDraft(
-            @RequestBody DraftCreateRequest request,
+            @RequestBody StoryRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();

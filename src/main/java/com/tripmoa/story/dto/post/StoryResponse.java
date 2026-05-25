@@ -2,6 +2,7 @@ package com.tripmoa.story.dto.post;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tripmoa.story.domain.Story;
+import com.tripmoa.story.enums.StoryType;
 import com.tripmoa.user.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,6 +65,9 @@ public class StoryResponse {
     // 출발 날짜
     private String departureDate;
 
+    // 게시글 타입 (자유글 / 여행 후기)
+    private String type;
+
     // 로그인 사용자의 좋아요 여부
     @JsonProperty("isLiked")
     private Boolean isLiked;
@@ -83,6 +87,14 @@ public class StoryResponse {
 
         // 프로필 이미지 또는 아바타
         private String avatar;
+
+        private String profileImage;
+
+        private String profileType;
+
+        private String avatarEmoji;
+
+        private String avatarColor;
     }
 
     /* 여행 경비 정보 DTO */
@@ -112,24 +124,33 @@ public class StoryResponse {
     }
 
     // 기본 변환 (좋아요 여부 false, 댓글 수 0)
-    public static StoryResponse from(Story story, User user) {
-        return from(story, user, false, 0);
+    public static StoryResponse from(Story story) {
+        return from(story, false, 0);
     }
 
     // 댓글 수 0 기본값
-    public static StoryResponse from(Story story, User user, boolean isLiked) {
-        return from(story, user, isLiked, 0);
+    public static StoryResponse from(Story story, boolean isLiked) {
+        return from(story, isLiked, 0);
+    }
+
+    public static StoryResponse from(Story story, User user, boolean isLiked, int commentCount) {
+        return from(story, isLiked, commentCount);
     }
 
     // Story와 User를 StoryResponse로 변환
-    public static StoryResponse from(Story story, User user, boolean isLiked, int commentCount) {
+    public static StoryResponse from(Story story, boolean isLiked, int commentCount) {
+
+
+        User user = story.getAuthor();
 
         AuthorInfo author = AuthorInfo.builder()
                 .id(user.getId())
                 .name(user.getNickname())
-                .avatar(user.getProfileImage() != null ? user.getProfileImage() :
-                        (user.getAvatarEmoji() != null ? user.getAvatarEmoji() :
-                                "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user.getId()))
+                .avatar(resolveAvatar(user))
+                .profileImage(user.getProfileImage())
+                .profileType(user.getProfileType() != null ? user.getProfileType().name() : null)
+                .avatarEmoji(user.getAvatarEmoji())
+                .avatarColor(user.getAvatarColor())
                 .build();
 
         ExpensesInfo expenses = null;
@@ -148,12 +169,15 @@ public class StoryResponse {
                     .build();
         }
 
+
         return StoryResponse.builder()
                 .id(story.getId())
                 .title(story.getTitle())
                 .description(story.getDescription())
                 .imageUrl(story.getImageUrl())
+
                 .author(author)
+
                 .likes(story.getLikes())
                 .views(story.getViews())
                 .comments(commentCount)
@@ -164,7 +188,14 @@ public class StoryResponse {
                 .destination(story.getDestination())
                 .duration(story.getDuration())
                 .departureDate(story.getDepartureDate())
+                .type(story.getType() != null ? story.getType().name() : "FREE")
                 .isLiked(isLiked)
                 .build();
+    }
+
+    private static String resolveAvatar(User user) {
+        if (user.getProfileImage() != null) return user.getProfileImage();
+        if (user.getAvatarEmoji() != null) return user.getAvatarEmoji();
+        return "https://api.dicebear.com/7.x/avataaars/svg?seed=" + user.getId();
     }
 }

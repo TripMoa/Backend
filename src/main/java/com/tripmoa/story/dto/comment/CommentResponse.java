@@ -38,18 +38,32 @@ public class CommentResponse {
         private String name;
         private String nickname;
         private String avatar;
+        private String profileImage;
+        private String profileType;
+        private String avatarEmoji;
+        private String avatarColor;
 
-        public AuthorInfo(Long id, String name, String nickname, String avatar) {
+        public AuthorInfo(Long id, String name, String nickname, String avatar,
+                          String profileImage, String profileType,
+                          String avatarEmoji, String avatarColor) {
             this.id = id;
             this.name = name;
             this.nickname = nickname;
             this.avatar = avatar;
+            this.profileImage = profileImage;
+            this.profileType = profileType;
+            this.avatarEmoji = avatarEmoji;
+            this.avatarColor = avatarColor;
         }
 
         public Long getId() { return id; }
         public String getName() { return name; }
         public String getNickname() { return nickname; }
         public String getAvatar() { return avatar; }
+        public String getProfileImage() { return profileImage; }
+        public String getProfileType() { return profileType; }
+        public String getAvatarEmoji() { return avatarEmoji; }
+        public String getAvatarColor() { return avatarColor; }
     }
 
     public CommentResponse() {}
@@ -86,7 +100,11 @@ public class CommentResponse {
                 user.getId(),
                 user.getName(),
                 user.getNickname(),
-                avatar
+                avatar,
+                user.getProfileImage(),
+                user.getProfileType() != null ? user.getProfileType().name() : null,
+                user.getAvatarEmoji(),
+                user.getAvatarColor()
         );
 
         // 날짜 포맷 변환
@@ -98,6 +116,24 @@ public class CommentResponse {
                 comment.getStory().getId(),
                 authorInfo,
                 comment.getContent(),
+                formattedDate,
+                comment.getCreatedAt(),
+                comment.getCreatedAt()
+        );
+    }
+
+    // 신고된 댓글 응답 - 내용과 작성자 숨김 처리
+    public static CommentResponse reported(StoryComment comment) {
+        AuthorInfo hiddenAuthor = new AuthorInfo(
+                null, "작성자 미상", null, null, null, null, null, null
+        );
+        String formattedDate = comment.getCreatedAt()
+                .format(DateTimeFormatter.ofPattern("yyyy. M. d."));
+        return new CommentResponse(
+                comment.getId(),
+                comment.getStory().getId(),
+                hiddenAuthor,
+                "신고된 댓글입니다.",
                 formattedDate,
                 comment.getCreatedAt(),
                 comment.getCreatedAt()

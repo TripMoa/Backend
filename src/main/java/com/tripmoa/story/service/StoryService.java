@@ -1,9 +1,10 @@
 package com.tripmoa.story.service;
 
 import com.tripmoa.story.domain.Story;
-import com.tripmoa.story.dto.post.StoryCreateRequest;
+import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.dto.post.StoryResponse;
 import com.tripmoa.story.dto.post.StoryUpdateRequest;
+import com.tripmoa.story.enums.StoryType;
 import com.tripmoa.story.repository.StoryLikeRepository;
 import com.tripmoa.story.repository.StoryRepository;
 import com.tripmoa.story.repository.StoryCommentRepository;
@@ -38,7 +39,7 @@ public class StoryService {
         List<Story> stories;
 
         if (tag == null) {
-            stories = storyRepository.findAll();
+            stories = storyRepository.findAllByOrderByCreatedAtDesc();
         } else {
             stories = storyRepository.findByTagsContaining("," + tag + ",");
         }
@@ -79,7 +80,7 @@ public class StoryService {
 
     // 여행기 생성
     @Transactional
-    public StoryResponse createStory(StoryCreateRequest request, Long authorId) {
+    public StoryResponse createStory(StoryRequest request, Long authorId) {
 
         // 욕설 필터 검사
         if (badWordFilter.containsBadWord(request.getTitle()) ||
@@ -90,13 +91,21 @@ public class StoryService {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        String tags = request.getTagIds() != null
+                ? request.getTagIds().toString()
+                : request.getTags();
+
+        StoryType type = request.getType() != null
+                ? StoryType.valueOf(request.getType())
+                : StoryType.FREE;
+
         Story story = new Story(
                 author,
                 null,
                 request.getTitle(),
                 request.getDescription(),
                 request.getImageUrl(),
-                request.getTags(),
+                tags,
                 request.getDestination(),
                 request.getDuration(),
                 request.getDepartureDate(),
@@ -104,15 +113,14 @@ public class StoryService {
                 request.getAccommodation(),
                 request.getFood(),
                 request.getAttraction(),
-                request.getShopping()
+                request.getShopping(),
+                type
+
         );
 
         Story saved = storyRepository.save(story);
 
-        User user = userRepository.findById(authorId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        return StoryResponse.from(saved, user, false, 0);
+        return StoryResponse.from(saved, author, false, 0);
     }
 
     // 여행기 수정

@@ -1,5 +1,7 @@
 package com.tripmoa.story.domain;
 
+
+import com.tripmoa.story.enums.StoryType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -7,6 +9,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import com.tripmoa.trip.entity.Trip;
 import com.tripmoa.user.entity.User;
+import java.util.ArrayList;
+import java.util.List;
 
 /* 여행기 엔티티
  - 여행기 정보 및 경비, 조회수, 좋아요 등을 관리 */
@@ -34,8 +38,6 @@ public class Story {
     // 여행기 제목
     private String title;
 
-
-
     // 여행기 내용
     @Column(columnDefinition = "LONGTEXT")
     private String description;
@@ -43,6 +45,15 @@ public class Story {
     // 대표 이미지 URL
     @Column(columnDefinition = "LONGTEXT")
     private String imageUrl;
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryComment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryLike> storyLikes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SavedItinerary> savedItineraries = new ArrayList<>();
 
     // 여행 스타일 태그
     private String tags;
@@ -75,11 +86,15 @@ public class Story {
     // 수정 시간
     private LocalDateTime updatedAt;
 
+    // 게시글 타입 (자유글 / 여행 후기)
+    @Enumerated(EnumType.STRING)
+    private StoryType type;
+
     // 여행기 생성
     public Story(User author, Trip trip, String title, String description, String imageUrl,
                  String tags, String destination, String duration, String departureDate,
                  Integer transportation, Integer accommodation,
-                 Integer food, Integer attraction, Integer shopping) {
+                 Integer food, Integer attraction, Integer shopping, StoryType type) {
         this.author = author;
         this.trip = trip;
         this.title = title;
@@ -96,6 +111,7 @@ public class Story {
         this.shopping = shopping;
         this.likes = 0;
         this.views = 0;
+        this.type = type;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }

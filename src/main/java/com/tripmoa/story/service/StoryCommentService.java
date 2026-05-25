@@ -16,6 +16,9 @@ import com.tripmoa.global.exception.ErrorCode;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.tripmoa.story.domain.Story;
+import com.tripmoa.report.ReportService;
+import com.tripmoa.report.ReportLocation;
+import com.tripmoa.report.ContentStatus;
 
 /* 댓글 서비스
  - 댓글 조회, 생성, 수정, 삭제 기능 처리 */
@@ -29,14 +32,9 @@ public class StoryCommentService {
     private final UserRepository userRepository;
     private final BadWordFilter badWordFilter;
     private final StoryRepository storyRepository;
+    private final ReportService reportService;
 
 
-    // 특정 게시글의 댓글 목록 조회
-    public List<CommentResponse> getComments(Long storyId) {
-        return storyCommentRepository.findByStory_Id(storyId).stream()
-                .map(CommentResponse::from)
-                .collect(Collectors.toList());
-    }
 
     // 댓글 생성
     @Transactional
@@ -93,11 +91,25 @@ public class StoryCommentService {
 
         comment.updateContent(request.getContent());
 
-        // 작성자 정보 조회
-        User user = userRepository.findById(authorId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
         return CommentResponse.from(comment);
+
+    }
+
+    // 특정 게시글의 댓글 목록 조회
+    public List<CommentResponse> getComments(Long storyId) {
+        return storyCommentRepository.findByStory_Id(storyId).stream()
+                .map(comment -> {
+                    CommentResponse response = CommentResponse.from(comment);
+                    // 신고 횟수 체크 - 3회 이상이면 내용 숨김
+                    ContentStatus status = reportService.resolveContentStatus(
+                            ReportLocation.COMMENT, comment.getId()
+                    );
+                    if (status == ContentStatus.REPORTED) {
+                        return CommentResponse.reported(comment);  // 숨김 처리된 응답
+                    }
+                    return response;
+                })
+                .collect(Collectors.toList());
     }
 
 }

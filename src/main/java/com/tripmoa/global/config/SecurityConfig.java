@@ -81,7 +81,10 @@ public class SecurityConfig {
                         // OCR 프록시: 로그인 필요 (의도적으로 명시)
                         .requestMatchers(HttpMethod.POST, "/api/trips/*/expenses/ocr/**").authenticated()
 
-                        // Mate : 로그인 필요한 엔드포인트
+                        // Story, Mate : 로그인 필요한 엔드포인트
+                        .requestMatchers(HttpMethod.GET, "/api/stories/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/stories/liked").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/stories/followed").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/mate/posts/passed").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/mate/applications/**").authenticated()
 
@@ -94,7 +97,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/schedule-items/**").permitAll()
 
                         // 비로그인 사용자도 볼 수 있는 데이터 (Public API) GET 경로만 허용
-                        // .requestMatchers(HttpMethod.GET, "/api/stories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/styles").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stories/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stories/{id}/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/mate/**").permitAll()
 
                         // Swagger 경로 허용

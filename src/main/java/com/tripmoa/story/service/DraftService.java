@@ -1,7 +1,7 @@
 package com.tripmoa.story.service;
 
 import com.tripmoa.story.domain.Draft;
-import com.tripmoa.story.dto.draft.DraftCreateRequest;
+import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.dto.draft.DraftResponse;
 import com.tripmoa.story.dto.draft.DraftUpdateRequest;
 import com.tripmoa.story.repository.DraftRepository;
@@ -50,23 +50,31 @@ public class DraftService {
 
     // 드래프트 생성
     @Transactional
-    public DraftResponse createDraft(DraftCreateRequest request, Long authorId) {
+    public DraftResponse createDraft(StoryRequest request, Long authorId) {
 
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        String images = request.getImages() != null
+                ? String.join(",", request.getImages())
+                : null;
+
+        String tags = request.getTagIds() != null
+                ? request.getTagIds().toString()
+                : null;
 
         Draft draft = new Draft(
                 author,
                 request.getTitle(),
                 request.getDescription(),
                 request.getImageUrl(),
-                request.getImages(),
-                request.getTags(),
+                images,
+                tags,
                 request.getDestination(),
                 request.getDuration(),
                 request.getDepartureDate(),
-                request.getBudget(),
-                request.getExpenses()
+                null,
+                null
         );
 
         Draft saved = draftRepository.save(draft);
