@@ -4,6 +4,7 @@ import com.tripmoa.ai.dto.AiScheduleRequest;
 import com.tripmoa.ai.dto.AiScheduleResponse;
 import com.tripmoa.schedule.domain.Schedule;
 import com.tripmoa.schedule.domain.ScheduleItem;
+import com.tripmoa.schedule.dto.ExcludedPlaceResponse;
 import com.tripmoa.schedule.dto.ScheduleItemResponse;
 import com.tripmoa.schedule.dto.ScheduleResponse;
 import com.tripmoa.schedule.repository.ScheduleItemRepository;
@@ -12,7 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * DB 저장 + 조회 담당
@@ -48,16 +52,22 @@ public class ScheduleService {
         List<Schedule> savedSchedules = scheduleRepository.saveAll(schedules);
 
         // ScheduleItem 저장 — savedSchedules의 ID를 사용해야 scheduleId가 null이 아님
+        // + 생성 시에만 존재하는 pin 경고/제외 장소를 day별로 모아둠 (DB엔 저장 안 함)
         List<AiScheduleResponse.DayPlan> dayPlans = response.getItinerary().getDays();
+        Map<Integer, List<String>> pinWarningsByDay = new HashMap<>();
+        Map<Integer, List<ExcludedPlaceResponse>> excludedByDay = new HashMap<>();
         for (int i = 0; i < savedSchedules.size(); i++) {
             Schedule savedSchedule = savedSchedules.get(i);
             AiScheduleResponse.DayPlan dayPlan = dayPlans.get(i);
             List<ScheduleItem> items = ScheduleMapper.toScheduleItems(savedSchedule.getId(), dayPlan);
             scheduleItemRepository.saveAll(items);
+
+            pinWarningsByDay.put(dayPlan.getDay(), ScheduleMapper.toPinWarnings(dayPlan));
+            excludedByDay.put(dayPlan.getDay(), ScheduleMapper.toExcludedPlaces(dayPlan));
         }
 
         // 저장된 일정을 바로 반환 (Controller에서 프론트로 내려줌)
-        return getSchedules(tripId);
+        return getSchedules(tripId, pinWarningsByDay, excludedByDay);
     }
 
     /**
@@ -66,7 +76,14 @@ public class ScheduleService {
      */
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(Long tripId) {
+        return getSchedules(tripId, Map.of(), Map.of());
+    }
 
+    private List<ScheduleResponse> getSchedules(
+            Long tripId,
+            Map<Integer, List<String>> pinWarningsByDay,
+            Map<Integer, List<ExcludedPlaceResponse>> excludedByDay
+    ) {
         List<Schedule> schedules = scheduleRepository.findAllByTripId(tripId);
 
         return schedules.stream()
@@ -85,6 +102,9 @@ public class ScheduleService {
                                     .orderIndex(item.getOrderIndex())
                                     .lat(item.getLat())
                                     .lng(item.getLng())
+                                    .travelMinutes(item.getTravelMinutes())
+                                    .travelPayment(item.getTravelPayment())
+                                    .travelTransfer(item.getTravelTransfer())
                                     .build())
                             .toList();
 
@@ -92,6 +112,8 @@ public class ScheduleService {
                             .scheduleId(schedule.getId())
                             .day(schedule.getDay())
                             .items(items)
+                            .pinWarnings(pinWarningsByDay.getOrDefault(schedule.getDay(), Collections.emptyList()))
+                            .excludedPlaces(excludedByDay.getOrDefault(schedule.getDay(), Collections.emptyList()))
                             .build();
                 })
                 .toList();

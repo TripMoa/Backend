@@ -24,7 +24,6 @@ public class PlaceResponse {
 
     private String address;
     private String description;
-    private String memo;
 
     //Entity -> Dto 변환
     public static PlaceResponse from(Place place) {
@@ -37,7 +36,6 @@ public class PlaceResponse {
                 .lng(place.getLng())
                 .address(place.getAddress())
                 .description(place.getDescription())
-                .memo(place.getMemo())
                 .build();
     }
 }

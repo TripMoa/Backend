@@ -7,6 +7,7 @@ import com.tripmoa.place.dto.PlaceCreateRequest;
 import com.tripmoa.place.dto.PlaceResponse;
 import com.tripmoa.place.dto.PlaceUpdateRequest;
 import com.tripmoa.place.repository.PlaceRepository;
+import com.tripmoa.trip.service.TripPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.util.List;
 public class PlaceService {
 
     private final PlaceRepository placeRepository;
+    private final TripPermissionService tripPermissionService;
 
     // 장소 생성
     public PlaceResponse save(PlaceCreateRequest request) {
@@ -33,7 +35,6 @@ public class PlaceService {
                 .lng(request.getLng())
                 .address(request.getAddress())
                 .description(request.getDescription())
-                .memo(request.getMemo())
                 .build();
 
         return PlaceResponse.from(placeRepository.save(place));
@@ -47,19 +48,26 @@ public class PlaceService {
                 .toList();
     }
 
-    // 장소 카테고리/메모 수정
+    // 장소 카테고리 수정
     @Transactional
-    public PlaceResponse update(Long placeId, PlaceUpdateRequest request) {
+    public PlaceResponse update(Long placeId, Long userId, PlaceUpdateRequest request) {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-        place.update(request.getCategory(), request.getMemo());
+        tripPermissionService.assertOwnerOrMember(place.getTripId(), userId);
+
+        place.update(request.getCategory());
 
         return PlaceResponse.from(place);
     }
 
     //장소 삭제
-    public void deletePlace(Long placeId) {
+    public void deletePlace(Long placeId, Long userId) {
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+
+        tripPermissionService.assertOwnerOrMember(place.getTripId(), userId);
+
         placeRepository.deleteById(placeId);
     }
 }

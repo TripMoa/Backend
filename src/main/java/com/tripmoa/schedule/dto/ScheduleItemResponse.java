@@ -17,4 +17,7 @@ public class ScheduleItemResponse {
     private int orderIndex;
     private Double lat;
     private Double lng;
+    private Integer travelMinutes; // 다음 장소까지 이동시간(분)
+    private Integer travelPayment; // 다음 장소까지 대중교통 요금(원)
+    private Integer travelTransfer; // 다음 장소까지 환승 횟수
 }

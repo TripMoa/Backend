@@ -44,6 +44,15 @@ public class ScheduleItem {
     private Double lat;
     private Double lng;
 
+    // 다음 장소까지 이동시간 (분) - ODsay 실측값 또는 하버사인 추정치
+    private Integer travelMinutes;
+
+    // 다음 장소까지 대중교통 요금 (원) - ODsay 실측값이 있을 때만 존재
+    private Integer travelPayment;
+
+    // 다음 장소까지 환승 횟수 - ODsay 실측값이 있을 때만 존재
+    private Integer travelTransfer;
+
     // 노드 수정
     public void update(String time, String title, String description) {
         if (time != null) this.time = time;
