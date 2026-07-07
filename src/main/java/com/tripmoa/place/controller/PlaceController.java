@@ -56,8 +56,9 @@ public class PlaceController {
             @PathVariable Long placeId,
             @RequestBody PlaceUpdateRequest request
     ) {
-        // placeId만으로 tripId를 알 수 없어서 권한 체크는 서비스 레이어에서 처리
-        return ResponseEntity.ok(placeService.update(placeId, request));
+        // placeId로 장소를 먼저 조회해서 tripId를 얻은 뒤 권한 체크 (PlaceService 내부에서 처리)
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(placeService.update(placeId, userId, request));
     }
 
     // 장소 삭제 DELETE /api/places/{placeId}
@@ -65,8 +66,9 @@ public class PlaceController {
     public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails userDetails,
                                        @PathVariable Long placeId) {
 
-        // 삭제는 placeId만으로 처리 (PlaceService 내부에서 처리)
-        placeService.deletePlace(placeId);
+        // placeId로 장소를 먼저 조회해서 tripId를 얻은 뒤 권한 체크 (PlaceService 내부에서 처리)
+        Long userId = userDetails.getUser().getId();
+        placeService.deletePlace(placeId, userId);
 
         return ResponseEntity.noContent().build();
     }

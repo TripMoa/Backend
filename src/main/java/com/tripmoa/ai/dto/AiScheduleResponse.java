@@ -1,45 +1,3 @@
-//package com.tripmoa.ai.dto;
-//
-//import lombok.Getter;
-//
-//import java.util.List;
-//
-///**
-// * AiScheduleResponse
-// * - Python → Spring 응답 DTO
-// * - AI가 생성한 일정 구조를 그대로 받는다
-// * 구조 반드시 Python 응답과 일치해야 함
-// */
-//@Getter
-//public class AiScheduleResponse {
-//
-//    //Day 단위 일정 리스트
-//    private List<DayPlan> days;
-//
-//    //DayPlan (하루 일정)
-//    @Getter
-//    public static class DayPlan {
-//        // 몇 번째 날인지
-//        private int day;
-//
-//        // 해당 날짜의 일정 리스트
-//        private List<Item> items;
-//    }
-//
-//    // Item 개별 일정
-//    @Getter
-//    public static class Item {
-//        //시간 (예: "09:00")
-//        private String time;
-//
-//        //일정 제목 (예: "경복궁 방문")
-//        private String title;
-//
-//        //상세 설명
-//        private String description;
-//    }
-//
-//}
 package com.tripmoa.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -51,6 +9,9 @@ import java.util.Map;
 
 /**
  * AiScheduleResponse
+ * - Python -> Spring 응답 DTO
+ * - AI가 생성한 일정 구조를 그래도 받음
+ * 구조가 반드시 Python 응답과 일치해야함
  * Python 응답 구조:
  * {
  *   "success": true,
@@ -85,6 +46,8 @@ public class AiScheduleResponse {
     public static class DayPlan {
         private int day;
         private List<Item> places;  // Python에서 "places" 필드로 옴
+        private List<String> pin_warnings;        // 고정 장소 시간 충돌 경고
+        private List<ExcludedPlace> excluded_places; // 용량 초과/시간대 제약으로 제외된 장소
 
         public void setDay(int day) {
             this.day = day;
@@ -100,5 +63,16 @@ public class AiScheduleResponse {
         private String description;
         private Double lat;
         private Double lng;
+        private Integer travel_minutes; //다음 장소까지 이동시간(분). ODsay 실측 값 또는 추정치
+        private Integer travel_payment;  // 다음 장소까지 대중교통 요금(원). ODsay 실측값이 있을 때만 존재
+        private Integer travel_transfer; // 다음 장소까지 환승 횟수. ODsay 실측값이 있을 때만 존재
+    }
+
+    @Getter
+    public static class ExcludedPlace {
+        private String name;
+        private String category;
+        private int day;
+        private String reason; // "capacity" | "morning_cafe"
     }
 }

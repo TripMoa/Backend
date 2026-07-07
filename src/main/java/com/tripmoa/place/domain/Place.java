@@ -39,12 +39,8 @@ public class Place {
     @Column(length = 500)
     private String description;  // 추가: 장소 설명
 
-    // 사용자 장소 메모
-    private String memo;
-
-    // 카테고리, 메모 수정
-    public void update(String category, String memo) {
+    // 카테고리 수정
+    public void update(String category) {
         if (category != null) this.category = category;
-        if (memo != null) this.memo = memo;
     }
 }

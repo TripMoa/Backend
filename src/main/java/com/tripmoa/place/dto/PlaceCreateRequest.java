@@ -21,5 +21,4 @@ public class PlaceCreateRequest {
 
     private String address;
     private String description;
-    private String memo;
 }
