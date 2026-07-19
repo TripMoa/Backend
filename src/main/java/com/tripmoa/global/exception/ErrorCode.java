@@ -139,6 +139,9 @@ public enum ErrorCode {
     // 일정 저장 관련에 추가
     SAVED_ITINERARY_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_004", "저장된 일정을 찾을 수 없습니다."),
 
+    // 리뷰 중복 작성 관련
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "STORY_409_002", "이미 해당 여행의 후기를 작성했습니다."),
+
     // 댓글 관련
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "STORY_404_002", "commentId에 해당하는 댓글이 없습니다."),
     COMMENT_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "STORY_403_003", "댓글을 수정할 권한이 없습니다."),

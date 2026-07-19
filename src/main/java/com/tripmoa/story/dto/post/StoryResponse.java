@@ -47,9 +47,6 @@ public class StoryResponse {
     // 생성 시간
     private LocalDateTime createdAt;
 
-    // 수정 시간
-    private LocalDateTime updatedAt;
-
     // 여행 스타일 태그
     private String tags;
 
@@ -65,12 +62,19 @@ public class StoryResponse {
     // 출발 날짜
     private String departureDate;
 
+    // 연결된 여행 ID
+    private Long tripId;
+
     // 게시글 타입 (자유글 / 여행 후기)
     private String type;
 
     // 로그인 사용자의 좋아요 여부
     @JsonProperty("isLiked")
     private Boolean isLiked;
+
+    // 공개 여부
+    @JsonProperty("isPublic")
+    private Boolean isPublic;
 
     /* 작성자 정보 DTO */
     @Getter
@@ -175,14 +179,11 @@ public class StoryResponse {
                 .title(story.getTitle())
                 .description(story.getDescription())
                 .imageUrl(story.getImageUrl())
-
                 .author(author)
-
                 .likes(story.getLikes())
                 .views(story.getViews())
                 .comments(commentCount)
                 .createdAt(story.getCreatedAt())
-                .updatedAt(story.getUpdatedAt())
                 .tags(story.getTags())
                 .expenses(expenses)
                 .destination(story.getDestination())
@@ -190,6 +191,8 @@ public class StoryResponse {
                 .departureDate(story.getDepartureDate())
                 .type(story.getType() != null ? story.getType().name() : "FREE")
                 .isLiked(isLiked)
+                .isPublic(story.getIsPublic())
+                .tripId(story.getTrip() != null ? story.getTrip().getId() : null)
                 .build();
     }
 

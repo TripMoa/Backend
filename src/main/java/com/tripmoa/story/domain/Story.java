@@ -83,8 +83,8 @@ public class Story {
     // 생성 시간
     private LocalDateTime createdAt;
 
-    // 수정 시간
-    private LocalDateTime updatedAt;
+    // 공개 여부
+    private Boolean isPublic = true;
 
     // 게시글 타입 (자유글 / 여행 후기)
     @Enumerated(EnumType.STRING)
@@ -94,7 +94,7 @@ public class Story {
     public Story(User author, Trip trip, String title, String description, String imageUrl,
                  String tags, String destination, String duration, String departureDate,
                  Integer transportation, Integer accommodation,
-                 Integer food, Integer attraction, Integer shopping, StoryType type) {
+                 Integer food, Integer attraction, Integer shopping, StoryType type, Boolean isPublic) {
         this.author = author;
         this.trip = trip;
         this.title = title;
@@ -113,7 +113,7 @@ public class Story {
         this.views = 0;
         this.type = type;
         this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.isPublic = isPublic;
     }
 
     // 여행기 수정
@@ -133,7 +133,6 @@ public class Story {
         this.food = food;
         this.attraction = attraction;
         this.shopping = shopping;
-        this.updatedAt = LocalDateTime.now();
     }
 
     // 조회수 증가
@@ -151,6 +150,16 @@ public class Story {
         if (this.likes > 0) {
             this.likes--;
         }
+    }
+
+    // 공개/비공개 변경
+    public void updateIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    // 공개 여부 getter
+    public Boolean getIsPublic() {
+        return isPublic;
     }
 
     // 총 여행 경비 계산
