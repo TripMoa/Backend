@@ -8,12 +8,14 @@ import com.tripmoa.story.enums.StoryType;
 import com.tripmoa.story.repository.StoryLikeRepository;
 import com.tripmoa.story.repository.StoryRepository;
 import com.tripmoa.story.repository.StoryCommentRepository;
+import com.tripmoa.trip.entity.Trip;
+import com.tripmoa.trip.repository.TripRepository;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.tripmoa.global.util.BadWordFilter;
+import com.tripmoa.global.util.FastApiBadWordClient;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import java.util.List;
@@ -31,7 +33,8 @@ public class StoryService {
     private final UserRepository userRepository;
     private final StoryLikeRepository storyLikeRepository;
     private final StoryCommentRepository storyCommentRepository;
-    private final BadWordFilter badWordFilter;
+    private final FastApiBadWordClient fastApiBadWordClient;
+    private final TripRepository tripRepository;
 
     // 전체 여행기 목록 조회
     public List<StoryResponse> getStorys(Long userId, String tag) {
@@ -39,9 +42,15 @@ public class StoryService {
         List<Story> stories;
 
         if (tag == null) {
-            stories = storyRepository.findAllByOrderByCreatedAtDesc();
+            stories = storyRepository.findAllByOrderByCreatedAtDesc()
+                    .stream()
+                    .filter(s -> s.getType() == StoryType.FREE || Boolean.TRUE.equals(s.getIsPublic()))
+                    .collect(Collectors.toList());
         } else {
-            stories = storyRepository.findByTagsContaining("," + tag + ",");
+            stories = storyRepository.findByTagsContaining("," + tag + ",")
+                    .stream()
+                    .filter(s -> s.getType() == StoryType.FREE || Boolean.TRUE.equals(s.getIsPublic()))
+                    .collect(Collectors.toList());
         }
 
         return stories.stream()
@@ -83,13 +92,24 @@ public class StoryService {
     public StoryResponse createStory(StoryRequest request, Long authorId) {
 
         // 욕설 필터 검사
-        if (badWordFilter.containsBadWord(request.getTitle()) ||
-                badWordFilter.containsBadWord(request.getDescription())) {
+        if (fastApiBadWordClient.checkBadWord(request.getTitle()) ||
+                fastApiBadWordClient.checkBadWord(request.getDescription())) {
             throw new BusinessException(ErrorCode.BAD_WORD_DETECTED);
         }
 
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        // Trip 연결
+        Trip trip = null;
+        if (request.getTripId() != null) {
+            trip = tripRepository.findById(request.getTripId()).orElse(null);
+
+            // 이미 해당 trip으로 작성된 리뷰 있는지 확인
+            if (storyRepository.existsByTrip_IdAndAuthor_Id(request.getTripId(), authorId)) {
+                throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
+            }
+        }
 
         String tags = request.getTagIds() != null
                 ? request.getTagIds().toString()
@@ -101,7 +121,7 @@ public class StoryService {
 
         Story story = new Story(
                 author,
-                null,
+                trip,
                 request.getTitle(),
                 request.getDescription(),
                 request.getImageUrl(),
@@ -114,7 +134,8 @@ public class StoryService {
                 request.getFood(),
                 request.getAttraction(),
                 request.getShopping(),
-                type
+                type,
+                request.getIsPublic()
 
         );
 
@@ -128,8 +149,8 @@ public class StoryService {
     public StoryResponse updateStory(Long id, StoryUpdateRequest request, Long authorId) {
 
         // 욕설 필터 검사
-        if (badWordFilter.containsBadWord(request.getTitle()) ||
-                badWordFilter.containsBadWord(request.getDescription())) {
+        if (fastApiBadWordClient.checkBadWord(request.getTitle()) ||
+                fastApiBadWordClient.checkBadWord(request.getDescription())) {
             throw new BusinessException(ErrorCode.BAD_WORD_DETECTED);
         }
 
@@ -155,6 +176,7 @@ public class StoryService {
                 request.getAttraction(),
                 request.getShopping()
         );
+        story.updateIsPublic(request.getIsPublic());
 
         User user = userRepository.findById(authorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -218,5 +240,10 @@ public class StoryService {
                     return StoryResponse.from(story, story.getAuthor(), true, commentCount);
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 특정 여행의 리뷰 작성 여부 확인
+    public boolean existsReviewByTripAndAuthor(Long tripId, Long authorId) {
+        return storyRepository.existsByTrip_IdAndAuthor_Id(tripId, authorId);
     }
 }

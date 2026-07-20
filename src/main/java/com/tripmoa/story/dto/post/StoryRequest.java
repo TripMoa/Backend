@@ -29,4 +29,8 @@ public class StoryRequest {
 
     private String type;
     private String status;
+
+    private Boolean isPublic = true;
+
+    private Long tripId;
 }

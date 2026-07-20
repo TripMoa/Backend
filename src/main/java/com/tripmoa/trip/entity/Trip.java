@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.tripmoa.story.domain.Story;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -79,6 +80,11 @@ public class Trip {
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<TripMember> members = new ArrayList<>();
+
+    // Story 연관관계 추가
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Story> stories = new ArrayList<>();
 
     // === 메서드 ===
     @PrePersist

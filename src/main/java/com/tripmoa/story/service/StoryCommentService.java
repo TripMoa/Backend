@@ -10,7 +10,7 @@ import com.tripmoa.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.tripmoa.global.util.BadWordFilter;
+import com.tripmoa.global.util.FastApiBadWordClient;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import java.util.List;
@@ -30,7 +30,7 @@ public class StoryCommentService {
 
     private final StoryCommentRepository storyCommentRepository;
     private final UserRepository userRepository;
-    private final BadWordFilter badWordFilter;
+    private final FastApiBadWordClient fastApiBadWordClient;
     private final StoryRepository storyRepository;
     private final ReportService reportService;
 
@@ -41,7 +41,7 @@ public class StoryCommentService {
     public CommentResponse createComment(Long storyId, CommentCreateRequest request, Long authorId) {
 
         // 욕설 필터 검사
-        if (badWordFilter.containsBadWord(request.getContent())) {
+        if (fastApiBadWordClient.checkBadWord(request.getContent())) {
             throw new BusinessException(ErrorCode.BAD_WORD_DETECTED);
         }
 
@@ -77,7 +77,7 @@ public class StoryCommentService {
     public CommentResponse updateComment(Long commentId, CommentCreateRequest request, Long authorId) {
 
         // 욕설 필터 검사
-        if (badWordFilter.containsBadWord(request.getContent())) {
+        if (fastApiBadWordClient.checkBadWord(request.getContent())) {
             throw new BusinessException(ErrorCode.BAD_WORD_DETECTED);
         }
 

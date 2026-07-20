@@ -43,6 +43,17 @@ public class StoryController {
         return ResponseEntity.ok(storyService.getStorysByAuthor(userId));
     }
 
+    // 특정 여행의 리뷰 작성 여부 확인 (GET /api/stories/review-check?tripId={tripId})
+    @GetMapping("/review-check")
+    public ResponseEntity<Boolean> checkReviewExists(
+            @RequestParam Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        boolean exists = storyService.existsReviewByTripAndAuthor(tripId, userId);
+        return ResponseEntity.ok(exists);
+    }
+
     // 여행기 상세 조회 (GET /api/stories/{id})
     @GetMapping("/{id}")
     public ResponseEntity<StoryResponse> getStory(
@@ -144,4 +155,6 @@ public class StoryController {
         Long userId = userDetails.getUser().getId();
         return ResponseEntity.ok(savedItineraryService.getSavedItineraries(userId));
     }
+
+
 }
