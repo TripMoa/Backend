@@ -23,6 +23,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final CookieUtil cookieUtil;
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
@@ -42,13 +43,7 @@ public class AuthController {
 
             String newRefreshToken = tokens.get("refreshToken");
 
-            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
-                    .httpOnly(true)
-                    .secure(false) // TODO : 로컬 http 테스트용 false. 배포(https) true
-                    .path("/")
-                    .sameSite("Lax")
-                    .maxAge(60 * 60 * 24 * 14)
-                    .build();
+            ResponseCookie refreshCookie = cookieUtil.createRefreshCookie(newRefreshToken);
 
             response.addHeader("Set-Cookie", refreshCookie.toString());
 
@@ -58,14 +53,7 @@ public class AuthController {
             ));
 
         } catch (BusinessException e) {
-            // 인증 유지 불가 상황 → Refresh 쿠키 제거 후 상태값과 함께 응답
-            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
-                    .httpOnly(true)
-                    .secure(false)
-                    .path("/")
-                    .sameSite("Lax")
-                    .maxAge(0)
-                    .build();
+            ResponseCookie deleteCookie = cookieUtil.deleteRefreshCookie();
             response.addHeader("Set-Cookie", deleteCookie.toString());
 
             if (e.getErrorCode() == ErrorCode.ACCOUNT_SUSPENDED) {
