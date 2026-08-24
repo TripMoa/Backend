@@ -35,6 +35,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthService authService;
+    private final CookieUtil cookieUtil;
 
     /**
      * TODO : HTTPOnly 쿠키로 전달 (실서비스 권장)
@@ -78,13 +79,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             return;
         }
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(false) // TODO : 로컬 http 테스트용 false. 배포(https)에서 true
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(60 * 60 * 24 * 14)
-                .build();
+        ResponseCookie refreshCookie = cookieUtil.createRefreshCookie(refreshToken);
 
         response.addHeader("Set-Cookie", refreshCookie.toString());
 

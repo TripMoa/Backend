@@ -23,6 +23,7 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final CookieUtil cookieUtil;
 
     // 로그아웃 Post
     @PostMapping("/logout")
@@ -34,13 +35,7 @@ public class UserController {
             authService.logout(userDetails.getUser().getId());
         }
 
-        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(false) // TODO : 로컬 http 테스트용. 배포(https) true
-                .path("/")
-                .sameSite("Lax")
-                .maxAge(0)
-                .build();
+        ResponseCookie deleteCookie = cookieUtil.deleteRefreshCookie();
 
         response.addHeader("Set-Cookie", deleteCookie.toString());
     }
