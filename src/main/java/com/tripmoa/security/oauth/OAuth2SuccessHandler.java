@@ -1,5 +1,6 @@
 package com.tripmoa.security.oauth;
 
+import com.tripmoa.global.config.CookieUtil;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.security.jwt.JwtTokenProvider;
