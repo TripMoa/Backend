@@ -1,5 +1,6 @@
 package com.tripmoa.user.controller;
 
+import com.tripmoa.global.config.CookieUtil;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.user.service.AuthService;
