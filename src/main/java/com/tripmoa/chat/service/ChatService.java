@@ -10,6 +10,8 @@ import com.tripmoa.chat.repository.ChatRoomRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.mate.domain.MatePost;
+import com.tripmoa.mate.enums.ApplyStatus;
+import com.tripmoa.mate.repository.ApplicationRepository;
 import com.tripmoa.mate.repository.MateRepository;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
@@ -34,6 +36,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final UnreadMessageCheck unreadMessageCheck;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationRepository applicationRepository;
 
      // 채팅방 생성 (메이트 신청 시 호출)
      // 이미 존재하면 기존 채팅방 반환
@@ -54,6 +57,12 @@ public class ChatService {
 
         if (!author.getId().equals(requestUser.getId()) && !applicantId.equals(requestUser.getId())) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
+        }
+
+        if(!applicationRepository.existsByMatePostIdAndApplicantIdAndStatus(
+                matePostId, applicantId, ApplyStatus.APPROVED
+        )) {
+            throw new BusinessException(ErrorCode.APPLICATION_NOT_FOUND);
         }
 
         // 이미 존재하는 채팅방이면 그대로 반환
