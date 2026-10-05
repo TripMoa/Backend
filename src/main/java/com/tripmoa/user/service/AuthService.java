@@ -58,8 +58,8 @@ public class AuthService {
     @Transactional
     public Map<String, String> refreshAccessToken(String refreshToken) {
 
-        // JWT 유효성 및 만료 검사
-        if (!jwtTokenProvider.validateToken(refreshToken)) {
+        // JWT 유효성 및 만료 검사 + 리프레시 토큰인지 검사 (액세스 토큰으로 재발급 시도 차단)
+        if (!jwtTokenProvider.validateToken(refreshToken) || !jwtTokenProvider.isRefreshToken(refreshToken)) {
             throw new RuntimeException("만료된 리프레시 토큰입니다. 다시 로그인하세요.");
         }
 
