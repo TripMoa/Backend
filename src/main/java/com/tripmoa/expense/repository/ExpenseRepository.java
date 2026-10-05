@@ -2,6 +2,7 @@ package com.tripmoa.expense.repository;
 
 import com.tripmoa.expense.entity.Expense;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -52,5 +53,27 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     // 특정 여행(tripId)에 지출 데이터가 하나라도 존재하는지 확인
     boolean existsByTrip_Id(Long tripId);
+
+    // 특정 일정 항목에 연결된 지출만 조회 (연관 엔티티 포함, N+1 방지)
+    @Query("""
+            select distinct e
+            from Expense e
+            left join fetch e.payerMember pm
+            left join fetch e.createdBy cb
+            left join fetch e.splits s
+            left join fetch s.member sm
+            where e.trip.id = :tripId
+              and e.scheduleItemId = :scheduleItemId
+            order by e.paidAt desc, e.createdAt desc
+            """)
+    List<Expense> findAllWithDetailsByTripIdAndScheduleItemId(
+            @Param("tripId") Long tripId,
+            @Param("scheduleItemId") Long scheduleItemId
+    );
+
+    // 일정 항목이 삭제됐을 때, 거기 연결돼 있던 지출들의 연결만 끊음 (지출 자체는 유지)
+    @Modifying
+    @Query("update Expense e set e.scheduleItemId = null where e.scheduleItemId = :scheduleItemId")
+    void unlinkScheduleItem(@Param("scheduleItemId") Long scheduleItemId);
 
 }

@@ -81,6 +81,11 @@ public class Voucher {
             foreignKey = @ForeignKey(name = "fk_voucher_created_by_user"))
     private User createdByUser;
 
+    // 연결된 일정 항목 (nullable — 미연결 가능)
+    // ScheduleItem은 다른 도메인과 달리 JPA 연관관계 없이 raw id로만 참조되는 모듈이라 동일하게 raw id로 맞춤
+    @Column(name = "schedule_item_id")
+    private Long scheduleItemId;
+
     // === 메서드 ===
     @Builder
     public Voucher(Trip trip,
@@ -91,7 +96,8 @@ public class Voucher {
                    String fileName,
                    VoucherFileType fileType,
                    Long fileSize,
-                   User createdByUser) {
+                   User createdByUser,
+                   Long scheduleItemId) {
         this.trip = trip;
         this.type = type;
         this.title = title;
@@ -101,6 +107,7 @@ public class Voucher {
         this.fileType = fileType;
         this.fileSize = fileSize;
         this.createdByUser = createdByUser;
+        this.scheduleItemId = scheduleItemId;
     }
 
     public void update(VoucherType type,
@@ -109,7 +116,8 @@ public class Voucher {
                        String fileUrl,
                        String fileName,
                        VoucherFileType fileType,
-                       Long fileSize) {
+                       Long fileSize,
+                       Long scheduleItemId) {
         this.type = type;
         this.title = title;
         this.description = description;
@@ -117,6 +125,7 @@ public class Voucher {
         this.fileName = fileName;
         this.fileType = fileType;
         this.fileSize = fileSize;
+        this.scheduleItemId = scheduleItemId;
     }
 
     public void changeFile(String fileUrl, String fileName, VoucherFileType fileType, Long fileSize) {

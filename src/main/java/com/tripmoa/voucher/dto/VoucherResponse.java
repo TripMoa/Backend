@@ -17,7 +17,8 @@ public record VoucherResponse(
         Long fileSize,
         Long createdByUserId,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        Long scheduleItemId
 ) {
     public static VoucherResponse from(Voucher voucher) {
         return new VoucherResponse(
@@ -32,7 +33,8 @@ public record VoucherResponse(
                 voucher.getFileSize(),
                 voucher.getCreatedByUser() != null ? voucher.getCreatedByUser().getId() : null,
                 voucher.getCreatedAt(),
-                voucher.getUpdatedAt()
+                voucher.getUpdatedAt(),
+                voucher.getScheduleItemId()
         );
     }
 }
