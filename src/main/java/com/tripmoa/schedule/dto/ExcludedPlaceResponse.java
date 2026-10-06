@@ -11,5 +11,5 @@ import lombok.Getter;
 public class ExcludedPlaceResponse {
     private String name;
     private String category;
-    private String reason; // "capacity" | "morning_cafe"
+    private String reason; // "capacity" | "over_time" | "meal_slot_limit" | "cafe_limit"
 }
