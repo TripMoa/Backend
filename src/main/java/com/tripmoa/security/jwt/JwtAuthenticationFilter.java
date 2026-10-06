@@ -60,8 +60,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
 
-                // 토큰 유효성 검사
-                if (!jwtTokenProvider.validateToken(token)) {
+                // 토큰 유효성 검사 (서명/만료) + 액세스 토큰인지 검사 (리프레시 토큰으로 API 호출 차단)
+                if (!jwtTokenProvider.validateToken(token) || !jwtTokenProvider.isAccessToken(token)) {
                     throw new BadCredentialsException("유효하지 않거나 만료된 토큰입니다.");
                 }
 

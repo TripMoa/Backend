@@ -31,10 +31,11 @@ public class ExpenseController {
     @GetMapping
     public ResponseEntity<List<ExpenseDetailResponse>> getExpenses(
             @PathVariable Long tripId,
+            @RequestParam(required = false) Long scheduleItemId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(expenseService.getExpenses(tripId, userId));
+        return ResponseEntity.ok(expenseService.getExpenses(tripId, userId, scheduleItemId));
     }
 
     @GetMapping("/{expenseId}")

@@ -5,6 +5,10 @@ import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.global.file.FileDirectories;
 import com.tripmoa.global.file.FileStorageService;
 import com.tripmoa.global.file.StoredFileInfo;
+import com.tripmoa.schedule.domain.Schedule;
+import com.tripmoa.schedule.domain.ScheduleItem;
+import com.tripmoa.schedule.repository.ScheduleItemRepository;
+import com.tripmoa.schedule.repository.ScheduleRepository;
 import com.tripmoa.trip.entity.Trip;
 import com.tripmoa.trip.service.TripPermissionService;
 import com.tripmoa.user.entity.User;
@@ -31,6 +35,8 @@ public class VoucherService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final TripPermissionService tripPermissionService;
+    private final ScheduleItemRepository scheduleItemRepository;
+    private final ScheduleRepository scheduleRepository;
 
     @Transactional
     public VoucherResponse create(Long tripId, Long userId, VoucherCreateRequest request, MultipartFile file) {
@@ -40,6 +46,8 @@ public class VoucherService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Long scheduleItemId = resolveScheduleItemId(tripId, request.scheduleItemId());
 
         StoredFileInfo storedFile = fileStorageService.store(file, FileDirectories.VOUCHER);
 
@@ -53,17 +61,21 @@ public class VoucherService {
                 .fileType(resolveFileType(file))
                 .fileSize(storedFile.fileSize())
                 .createdByUser(user)
+                .scheduleItemId(scheduleItemId)
                 .build();
 
         voucherRepository.save(voucher);
         return VoucherResponse.from(voucher);
     }
 
-    public List<VoucherResponse> getVouchers(Long tripId, Long userId) {
+    public List<VoucherResponse> getVouchers(Long tripId, Long userId, Long scheduleItemId) {
         tripPermissionService.assertOwnerOrMember(tripId, userId);
 
-        return voucherRepository.findAllByTrip_IdOrderByCreatedAtDesc(tripId)
-                .stream()
+        List<Voucher> vouchers = scheduleItemId != null
+                ? voucherRepository.findAllByTrip_IdAndScheduleItemIdOrderByCreatedAtDesc(tripId, scheduleItemId)
+                : voucherRepository.findAllByTrip_IdOrderByCreatedAtDesc(tripId);
+
+        return vouchers.stream()
                 .map(VoucherResponse::from)
                 .toList();
     }
@@ -84,6 +96,8 @@ public class VoucherService {
 
         Voucher voucher = voucherRepository.findByIdAndTrip_Id(voucherId, tripId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "바우처를 찾을 수 없습니다."));
+
+        Long scheduleItemId = resolveScheduleItemId(tripId, request.scheduleItemId());
 
         String fileUrl = voucher.getFileUrl();
         String fileName = voucher.getFileName();
@@ -110,7 +124,8 @@ public class VoucherService {
                 fileUrl,
                 fileName,
                 fileType,
-                fileSize
+                fileSize,
+                scheduleItemId
         );
 
         return VoucherResponse.from(voucher);
@@ -125,6 +140,25 @@ public class VoucherService {
 
         fileStorageService.deleteFile(voucher.getFileUrl());
         voucherRepository.delete(voucher);
+    }
+
+    // scheduleItemId가 오면 해당 일정 항목이 실제로 존재하고, 같은 트립 소속인지 검증
+    private Long resolveScheduleItemId(Long tripId, Long scheduleItemId) {
+        if (scheduleItemId == null) {
+            return null;
+        }
+
+        ScheduleItem item = scheduleItemRepository.findById(scheduleItemId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "연결하려는 일정 항목을 찾을 수 없습니다."));
+
+        Schedule schedule = scheduleRepository.findById(item.getScheduleId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "연결하려는 일정 항목을 찾을 수 없습니다."));
+
+        if (!schedule.getTripId().equals(tripId)) {
+            throw new BusinessException(ErrorCode.TRIP_FORBIDDEN, "다른 여행의 일정 항목에는 연결할 수 없습니다.");
+        }
+
+        return scheduleItemId;
     }
 
     private VoucherFileType resolveFileType(MultipartFile file) {

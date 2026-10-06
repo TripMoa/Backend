@@ -38,10 +38,11 @@ public class VoucherController {
     @GetMapping
     public ResponseEntity<List<VoucherResponse>> getVouchers(
             @PathVariable Long tripId,
+            @RequestParam(required = false) Long scheduleItemId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
-        return ResponseEntity.ok(voucherService.getVouchers(tripId, userId));
+        return ResponseEntity.ok(voucherService.getVouchers(tripId, userId, scheduleItemId));
     }
 
     @GetMapping("/{voucherId}")
