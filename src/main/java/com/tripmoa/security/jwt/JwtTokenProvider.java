@@ -15,6 +15,13 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
+    // access/refresh 토큰 구분용 타입
+    // "type" 클레임이 없는 토큰(이번 변경 이전에 발급된 토큰)은 legacy 취급 →
+    // getTokenType()이 ACCESS로 기본값 처리 (isAccessToken 쪽만 관대하게 허용, isRefreshToken은 엄격)
+    public enum TokenType {
+        ACCESS, REFRESH
+    }
+
     // TODO : 설정한 비밀키 고정 (개발용)
     @Value("${jwt.secret}")
     private String secretKey;
@@ -32,12 +39,12 @@ public class JwtTokenProvider {
 
     // 액세스 토큰 생성
     public String createAccessToken(Long userId) {
-        return createToken(userId, ACCESS_TOKEN_VALID_TIME);
+        return createToken(userId, ACCESS_TOKEN_VALID_TIME, TokenType.ACCESS);
     }
 
     // 리프레시 토큰 생성
     public String createRefreshToken(Long userId) {
-        return createToken(userId, REFRESH_TOKEN_VALID_TIME);
+        return createToken(userId, REFRESH_TOKEN_VALID_TIME, TokenType.REFRESH);
     }
 
     /**
@@ -45,11 +52,12 @@ public class JwtTokenProvider {
      * @param userId 로그인한 사용자 ID
      * @return JWT 문자열
      */
-    private String createToken(Long userId, long validTime) {
+    private String createToken(Long userId, long validTime, TokenType type) {
 
         // 토큰 안에 담을 정보 (payload)
         Claims claims = Jwts.claims();
         claims.put("userId", userId);
+        claims.put("type", type.name());
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + validTime);
@@ -66,6 +74,22 @@ public class JwtTokenProvider {
     // 토큰에서 userId 추출
     public Long getUserId(String token) {
         return parseClaims(token).get("userId", Long.class);
+    }
+
+    // 토큰에서 타입 추출 ("type" 클레임이 없는 구버전 토큰은 ACCESS로 취급)
+    public TokenType getTokenType(String token) {
+        String type = parseClaims(token).get("type", String.class);
+        return type != null ? TokenType.valueOf(type) : TokenType.ACCESS;
+    }
+
+    // 리소스 API 접근용으로 쓸 수 있는 토큰인지 (액세스 토큰, 혹은 구버전 무타입 토큰)
+    public boolean isAccessToken(String token) {
+        return getTokenType(token) == TokenType.ACCESS;
+    }
+
+    // 토큰 재발급(/api/auth/refresh)에 쓸 수 있는 리프레시 토큰인지 (엄격 — 구버전 무타입 토큰은 불허)
+    public boolean isRefreshToken(String token) {
+        return getTokenType(token) == TokenType.REFRESH;
     }
 
     // 토큰 유효성 검사 (위조 여부, 만료 여부)
