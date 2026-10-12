@@ -41,13 +41,10 @@ public class StompHandler implements ChannelInterceptor {
         StompCommand command = accessor.getCommand();
 
         if (StompCommand.CONNECT.equals(command)) {
-            log.info("[STOMP] {} dest={} user={}", command, accessor.getDestination(), accessor.getUser() != null ? accessor.getUser().getName() : null);
             authenticate(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(command)) {
-            log.info("[STOMP] {} dest={} user={}", command, accessor.getDestination(), accessor.getUser() != null ? accessor.getUser().getName() : null);
             validateSubscribe(accessor);
         } else if (StompCommand.SEND.equals(command)) {
-            log.info("[STOMP] {} dest={} user={}", command, accessor.getDestination(), accessor.getUser() != null ? accessor.getUser().getName() : null);
             validateSend(accessor);
         }
 
