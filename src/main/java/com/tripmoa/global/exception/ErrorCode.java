@@ -21,6 +21,9 @@ public enum ErrorCode {
     // 403 - 로그인은 했지만 권한이 없는 경우
     FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON_403_001", "권한이 없습니다."),
 
+    // 403 - 실시간(WebSocket/STOMP) 연결·구독·전송이 허용되지 않는 경우 (채팅·일정 등 모든 실시간 기능이 쓰는 공용 인터셉터용)
+    WEBSOCKET_FORBIDDEN(HttpStatus.FORBIDDEN, "WS_403_001", "실시간 연결 접근 권한이 없습니다."),
+
     // 404 - 리소스 자체가 존재하지 않는 경우
     NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_404_001", "대상을 찾을 수 없습니다."),
 
