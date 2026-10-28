@@ -67,6 +67,12 @@ public class TripCommandService {
         // owner 본인 제외
         normalizedMemberIds.removeIf(memberId -> memberId.equals(owner.getId()));
 
+        // 본인 포함 인원 상한 — 링크 참여·소유자 추가와 같은 값(Trip.MAX_MEMBERS)을 쓴다
+        if (normalizedMemberIds.size() + 1 > Trip.MAX_MEMBERS) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST,
+                    "여행은 본인을 포함해 최대 " + Trip.MAX_MEMBERS + "명까지 함께할 수 있어요.");
+        }
+
         // 멤버 존재 여부 재검증
         List<User> memberUsers = normalizedMemberIds.isEmpty()
                 ? List.of()
