@@ -18,9 +18,11 @@ public class TripInviteController {
 
     @GetMapping("/{inviteCode}")
     public ResponseEntity<TripInviteResponse> getInviteInfo(
-            @PathVariable String inviteCode
+            @PathVariable String inviteCode,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        return ResponseEntity.ok(tripInviteService.getInviteInfo(inviteCode));
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(tripInviteService.getInviteInfo(inviteCode, userId));
     }
 
     @PostMapping("/{inviteCode}/join")
