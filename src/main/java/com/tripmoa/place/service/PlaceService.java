@@ -7,6 +7,8 @@ import com.tripmoa.place.dto.PlaceCreateRequest;
 import com.tripmoa.place.dto.PlaceResponse;
 import com.tripmoa.place.dto.PlaceUpdateRequest;
 import com.tripmoa.place.repository.PlaceRepository;
+import com.tripmoa.trip.realtime.TripChangeAction;
+import com.tripmoa.trip.realtime.TripRealtimePublisher;
 import com.tripmoa.trip.service.TripPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class PlaceService {
 
     private final PlaceRepository placeRepository;
     private final TripPermissionService tripPermissionService;
+    private final TripRealtimePublisher realtime;
 
     // 장소 생성
     public PlaceResponse save(PlaceCreateRequest request) {
@@ -37,7 +40,9 @@ public class PlaceService {
                 .description(request.getDescription())
                 .build();
 
-        return PlaceResponse.from(placeRepository.save(place));
+        Place saved = placeRepository.save(place);
+        realtime.placesChanged(saved.getTripId(), TripChangeAction.PLACE_ADDED, saved.getName());
+        return PlaceResponse.from(saved);
     }
     
     // 장소 조회
@@ -57,6 +62,8 @@ public class PlaceService {
         tripPermissionService.assertOwnerOrMember(place.getTripId(), userId);
 
         place.update(request.getCategory());
+        // 열린 트랜잭션 안이라 알림은 커밋 뒤로 미뤄진다
+        realtime.placesChanged(place.getTripId(), TripChangeAction.PLACE_UPDATED, place.getName());
 
         return PlaceResponse.from(place);
     }
@@ -69,5 +76,6 @@ public class PlaceService {
         tripPermissionService.assertOwnerOrMember(place.getTripId(), userId);
 
         placeRepository.deleteById(placeId);
+        realtime.placesChanged(place.getTripId(), TripChangeAction.PLACE_DELETED, place.getName());
     }
 }
