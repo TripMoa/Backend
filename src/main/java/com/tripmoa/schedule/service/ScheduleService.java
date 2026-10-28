@@ -9,10 +9,13 @@ import com.tripmoa.schedule.domain.Schedule;
 import com.tripmoa.schedule.domain.ScheduleItem;
 import com.tripmoa.schedule.dto.ExcludedPlaceResponse;
 import com.tripmoa.schedule.dto.ScheduleEstimateResponse;
+import com.tripmoa.schedule.dto.ScheduleGenerationStatusResponse;
 import com.tripmoa.schedule.dto.ScheduleResponse;
 import com.tripmoa.schedule.event.ScheduleItemDeletedEvent;
 import com.tripmoa.schedule.repository.ScheduleItemRepository;
 import com.tripmoa.schedule.repository.ScheduleRepository;
+import com.tripmoa.trip.realtime.TripChangeAction;
+import com.tripmoa.trip.realtime.TripRealtimePublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -43,6 +46,9 @@ public class ScheduleService {
     private final ApplicationEventPublisher eventPublisher;
     private final TripScheduleLock tripLock;
     private final TransactionTemplate transactionTemplate;
+    private final TripRealtimePublisher realtime;
+    private final ScheduleGenerationState generationState;
+    private final ScheduleUndoService undoService;
 
     // 직접 만들 수 있는 일차의 상한 (비정상 값 방지)
     private static final int MAX_DAY = 60;
@@ -54,22 +60,53 @@ public class ScheduleService {
      *   (동시에 실행되면 같은 일차 행이 중복으로 생긴다)
      * - AI 호출은 트랜잭션 밖에서 한다: 느린 외부 호출 동안 DB 연결·트랜잭션을 붙잡지 않고,
      *   AI가 실패해도 기존 일정은 그대로 남는다(삭제·저장은 성공한 뒤에 한 트랜잭션으로 처리)
+     * - 생성이 도는 동안 "생성 중" 상태를 켜서 다른 멤버의 구조 편집을 거절하고(ScheduleGenerationState),
+     *   시작·끝(성공/실패)을 여행 멤버에게 알린다. 끝 알림은 상태를 먼저 끈 뒤에 보낸다 — 알림을 받고 바로 편집해도 막히지 않게.
      */
-    public List<ScheduleResponse> generateAndSave(Long tripId, AiScheduleRequest request) {
+    public List<ScheduleResponse> generateAndSave(Long tripId, Long userId, AiScheduleRequest request) {
         if (!tripLock.tryLock(tripId)) {
             throw new BusinessException(ErrorCode.CONFLICT,
                     "다른 멤버가 이 여행의 일정을 만들고 있어요. 잠시 후 다시 시도해주세요.");
         }
+        generationState.begin(tripId, userId);
+        realtime.schedulesChanged(tripId, TripChangeAction.GENERATE_START, List.of(), null);
+        boolean generated = false;
         try {
             AiScheduleResponse response = scheduleAiService.response(request);
-            return transactionTemplate.execute(status -> replaceSchedules(tripId, response, request));
+            List<ScheduleResponse> result =
+                    transactionTemplate.execute(status -> replaceSchedules(tripId, userId, response, request));
+            generated = true;
+            generationState.end(tripId);
+            // 일정 전체가 새로 만들어졌다 — 일차 id가 모두 바뀌므로 받은 쪽은 전체를 다시 불러온다
+            realtime.schedulesChanged(tripId, TripChangeAction.SCHEDULE_GENERATED, List.of(), null);
+            return result;
         } finally {
+            if (!generated) {
+                // 실패(AI 오류·저장 실패 등): 일정은 그대로이고 편집 제한만 풀린다
+                generationState.end(tripId);
+                realtime.schedulesChanged(tripId, TripChangeAction.GENERATE_FAILED, List.of(), null);
+            }
             tripLock.unlock(tripId);
         }
     }
 
+    /** 이 여행에서 AI 일정 생성이 진행 중인지 */
+    public ScheduleGenerationStatusResponse generationStatus(Long tripId) {
+        return generationState.infoOf(tripId)
+                .map(info -> ScheduleGenerationStatusResponse.builder()
+                        .generating(true)
+                        .startedAt(info.startedAt())
+                        .actorUserId(info.actorUserId())
+                        .actorNickname(info.actorNickname())
+                        .build())
+                .orElseGet(() -> ScheduleGenerationStatusResponse.builder().generating(false).build());
+    }
+
     // AI 응답으로 기존 일정을 통째로 교체 — 반드시 트랜잭션 안에서 호출
-    private List<ScheduleResponse> replaceSchedules(Long tripId, AiScheduleResponse response, AiScheduleRequest request) {
+    private List<ScheduleResponse> replaceSchedules(Long tripId, Long userId, AiScheduleResponse response, AiScheduleRequest request) {
+
+        // 되돌리기용으로 바꾸기 직전의 일정을 저장해 둔다 (노드를 덮어쓰기 전에 해야 한다)
+        undoService.capture(tripId, userId, scheduleRepository.findAllByTripId(tripId));
 
         // 재생성 케이스: 기존 일정의 노드를 "같은 장소끼리" 새 결과에 재사용한다.
         // 노드를 지우고 새로 만들면 id가 바뀌어 지출·바우처 연결과 멤버 메모가 사라지므로,
@@ -120,6 +157,9 @@ public class ScheduleService {
         scheduleItemRepository.deleteAll(unused);
         scheduleRepository.deleteAll(existing);
 
+        // 방금 만든 일정의 지문을 스냅샷에 적는다 — 이 지문과 같을 때만(그 뒤로 아무도 안 고쳤을 때만) 되돌릴 수 있다
+        undoService.seal(tripId);
+
         // 저장된 일정을 바로 반환 (Controller에서 프론트로 내려줌)
         return getSchedules(tripId, pinWarningsByDay, excludedByDay);
     }
@@ -158,6 +198,7 @@ public class ScheduleService {
         if (day < 1 || day > MAX_DAY) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "일차는 1~" + MAX_DAY + " 사이여야 합니다.");
         }
+        generationState.assertNotGenerating(tripId);
 
         // 같은 일차를 동시에 만들면 중복 행이 생기므로 여행 단위로 직렬화한다(생성 중이면 잠깐 기다렸다가 거절)
         if (!tripLock.tryLock(tripId, 5, TimeUnit.SECONDS)) {
@@ -165,15 +206,24 @@ public class ScheduleService {
                     "지금 이 여행의 일정을 만들고 있어요. 잠시 후 다시 시도해주세요.");
         }
         try {
-            return transactionTemplate.execute(status -> ensureDayInTransaction(tripId, day));
+            boolean[] created = {false};
+            ScheduleResponse result = transactionTemplate.execute(status -> ensureDayInTransaction(tripId, day, created));
+            // 이미 있던 일차를 그대로 돌려준 경우(멱등)는 바뀐 게 없으므로 알리지 않는다
+            if (created[0] && result != null) {
+                realtime.schedulesChanged(tripId, TripChangeAction.DAY_CREATED, List.of(result.getScheduleId()), null);
+            }
+            return result;
         } finally {
             tripLock.unlock(tripId);
         }
     }
 
-    private ScheduleResponse ensureDayInTransaction(Long tripId, int day) {
+    private ScheduleResponse ensureDayInTransaction(Long tripId, int day, boolean[] created) {
         Schedule schedule = scheduleRepository.findFirstByTripIdAndDayOrderByIdAsc(tripId, day)
-                .orElseGet(() -> scheduleRepository.save(Schedule.builder().tripId(tripId).day(day).build()));
+                .orElseGet(() -> {
+                    created[0] = true;
+                    return scheduleRepository.save(Schedule.builder().tripId(tripId).day(day).build());
+                });
 
         return ScheduleResponseMapper.toResponse(
                 schedule, scheduleItemRepository.findAllByScheduleId(schedule.getId()), null, null);
