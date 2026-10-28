@@ -1,6 +1,5 @@
-package com.tripmoa.chat.config;
+package com.tripmoa.global.websocket;
 
-import com.tripmoa.chat.repository.ChatRoomRepository;
 import com.tripmoa.global.exception.BusinessException;
 import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.security.jwt.JwtTokenProvider;
@@ -18,18 +17,28 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.List;
 
-// STOMP 연결 시 JWT 토큰 검증 인터셉터
- // 클라이언트에서 WebSocket 연결 시 헤더에 JWT 토큰을 포함해야 함:
- // stompClient.connect({ Authorization: "Bearer {token}" }, ...)
+/**
+ * STOMP 공통 인터셉터 (채팅·일정 등 모든 WebSocket 기능이 함께 쓴다)
+ *
+ * - CONNECT  : 헤더의 JWT(액세스 토큰)를 검증하고 사용자를 세션에 심는다.
+ *              클라이언트는 연결 헤더에 Authorization: Bearer {token} 을 보내야 한다.
+ * - SUBSCRIBE: 주소를 담당하는 StompDestinationPolicy 에 접근 판단을 맡긴다. 담당 정책이 없는 주소는 거부한다.
+ * - SEND     : /pub/ 으로 시작하는 주소만 허용한다.
+ *
+ * 거부 시에는 공용 에러코드 WEBSOCKET_FORBIDDEN 을 쓴다. (채팅 구독 거부는 채팅 정책(ChatDestinationPolicy)이 기존 채팅 코드로 던진다.)
+ * 참고: 예외 메시지는 Spring 이 일반 문구("Failed to send message to ...")로 감싸기 때문에, 클라이언트가 받는 STOMP ERROR 프레임에도
+ *       기본 서버 로그에도 실리지 않는다. 그래서 이 코드는 "무엇이 거부됐는지"를 코드로 읽을 때를 위한 이름이다.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class StompHandler implements ChannelInterceptor {
+public class StompAuthInterceptor implements ChannelInterceptor {
 
-     private final JwtTokenProvider jwtTokenProvider;
-     private final CustomUserDetailsService customUserDetailsService;
-     private final ChatRoomRepository chatRoomRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final List<StompDestinationPolicy> destinationPolicies;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -53,8 +62,8 @@ public class StompHandler implements ChannelInterceptor {
 
     private void authenticate(StompHeaderAccessor accessor) {
         String authHeader = accessor.getFirstNativeHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")){
-            throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BusinessException(ErrorCode.WEBSOCKET_FORBIDDEN);
         }
 
         String token = authHeader.substring(7);
@@ -83,32 +92,27 @@ public class StompHandler implements ChannelInterceptor {
     private void validateSend(StompHeaderAccessor accessor) {
         String destination = accessor.getDestination();
         if (destination == null || !destination.startsWith("/pub/")) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
+            throw new BusinessException(ErrorCode.WEBSOCKET_FORBIDDEN);
         }
     }
 
-     private void validateSubscribe(StompHeaderAccessor accessor) {
-         String destination = accessor.getDestination();
-         if (destination == null || !destination.startsWith("/sub/chat/room/")) {
-             throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
-         }
+    private void validateSubscribe(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination == null) {
+            throw new BusinessException(ErrorCode.WEBSOCKET_FORBIDDEN);
+        }
 
-         Long roomId;
-         try {
-             roomId = Long.parseLong(destination.substring("/sub/chat/room/".length()));
-         } catch (NumberFormatException e) {
-             throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
-         }
+        StompDestinationPolicy policy = destinationPolicies.stream()
+                .filter(p -> p.supports(destination))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.WEBSOCKET_FORBIDDEN));
 
-         Principal user = accessor.getUser();
-         if (user == null) {
-             throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
-         }
-         Long userId = Long.parseLong(user.getName());
+        Principal user = accessor.getUser();
+        if (user == null) {
+            throw new BusinessException(ErrorCode.WEBSOCKET_FORBIDDEN);
+        }
+        Long userId = Long.parseLong(user.getName());
 
-         if (!chatRoomRepository.existsActiveMember(roomId, userId)) {
-             log.warn("SUBSCRIBE 거부 userId={}, roomId={}", userId, roomId);
-             throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
-         }
-     }
+        policy.authorizeSubscribe(userId, destination);
+    }
 }
