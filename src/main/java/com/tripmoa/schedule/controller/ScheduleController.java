@@ -7,10 +7,13 @@ import com.tripmoa.schedule.dto.ScheduleAutoComputeRequest;
 import com.tripmoa.schedule.dto.ScheduleDayRequest;
 import com.tripmoa.schedule.dto.ScheduleEstimateResponse;
 import com.tripmoa.schedule.dto.ScheduleGenerateRequest;
+import com.tripmoa.schedule.dto.ScheduleGenerationStatusResponse;
 import com.tripmoa.schedule.dto.ScheduleResponse;
 import com.tripmoa.schedule.dto.ScheduleSettingsRequest;
+import com.tripmoa.schedule.dto.ScheduleUndoStatusResponse;
 import com.tripmoa.schedule.service.ScheduleComputeService;
 import com.tripmoa.schedule.service.ScheduleService;
+import com.tripmoa.schedule.service.ScheduleUndoService;
 import com.tripmoa.security.principal.CustomUserDetails;
 import com.tripmoa.trip.service.TripPermissionService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
     private final ScheduleComputeService scheduleComputeService;
+    private final ScheduleUndoService scheduleUndoService;
     private final TripPermissionService tripPermissionService;
 
     // 일정 생성 (AI) POST /api/schedules/ai (Trip 오너 or 멤버만 가능)
@@ -38,8 +42,39 @@ public class ScheduleController {
         requireTripId(request.getTripId());
         tripPermissionService.assertOwnerOrMember(request.getTripId(), userId);
 
-        List<ScheduleResponse> result = scheduleService.generateAndSave(request.getTripId(), toAiRequest(request));
+        List<ScheduleResponse> result = scheduleService.generateAndSave(request.getTripId(), userId, toAiRequest(request));
         return ResponseEntity.ok(result);
+    }
+
+    // AI 일정 생성 진행 여부 GET /api/schedules/generation?tripId=1 (Trip 오너 or 멤버만 가능)
+    // 화면을 처음 열 때·실시간 연결이 끊겼다 붙을 때 "지금 누가 생성 중인지"를 맞추는 데 쓴다
+    @GetMapping("/generation")
+    public ResponseEntity<ScheduleGenerationStatusResponse> generationStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam Long tripId) {
+        Long userId = userDetails.getUser().getId();
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+
+        return ResponseEntity.ok(scheduleService.generationStatus(tripId));
+    }
+
+    // AI 재생성을 되돌릴 수 있는지 GET /api/schedules/undo?tripId=1 (Trip 오너 or 멤버만 가능)
+    @GetMapping("/undo")
+    public ResponseEntity<ScheduleUndoStatusResponse> undoStatus(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                                 @RequestParam Long tripId) {
+        tripPermissionService.assertOwnerOrMember(tripId, userDetails.getUser().getId());
+
+        return ResponseEntity.ok(scheduleUndoService.status(tripId));
+    }
+
+    // AI 재생성을 직전 상태로 되돌리기 POST /api/schedules/undo?tripId=1 (Trip 오너 or 멤버만 가능)
+    // 재생성 뒤에 일정이 수정됐다면 409
+    @PostMapping("/undo")
+    public ResponseEntity<List<ScheduleResponse>> undo(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                       @RequestParam Long tripId) {
+        tripPermissionService.assertOwnerOrMember(tripId, userDetails.getUser().getId());
+
+        return ResponseEntity.ok(scheduleUndoService.undo(tripId));
     }
 
     // 일정 생성 전 예상 POST /api/schedules/estimate (Trip 오너 or 멤버만 가능) — 저장하지 않음

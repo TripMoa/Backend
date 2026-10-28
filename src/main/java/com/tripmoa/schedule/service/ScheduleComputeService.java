@@ -12,6 +12,8 @@ import com.tripmoa.schedule.dto.ScheduleSettingsRequest;
 import com.tripmoa.schedule.event.ScheduleChangedEvent;
 import com.tripmoa.schedule.repository.ScheduleItemRepository;
 import com.tripmoa.schedule.repository.ScheduleRepository;
+import com.tripmoa.trip.realtime.TripChangeAction;
+import com.tripmoa.trip.realtime.TripRealtimePublisher;
 import com.tripmoa.trip.service.TripPermissionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,6 +69,8 @@ public class ScheduleComputeService {
     private final ScheduleAiService scheduleAiService;
     private final TripScheduleLock tripLock;
     private final TripPermissionService tripPermissionService;
+    private final TripRealtimePublisher realtime;
+    private final ScheduleGenerationState generationState;
     private final TransactionTemplate tx;   // 매번 새 트랜잭션 (AFTER_COMMIT 리스너 안에서도 쓴다)
     private final ObjectMapper json = new ObjectMapper();
 
@@ -76,6 +80,8 @@ public class ScheduleComputeService {
             ScheduleAiService scheduleAiService,
             TripScheduleLock tripLock,
             TripPermissionService tripPermissionService,
+            TripRealtimePublisher realtime,
+            ScheduleGenerationState generationState,
             PlatformTransactionManager txManager
     ) {
         this.scheduleRepository = scheduleRepository;
@@ -83,6 +89,8 @@ public class ScheduleComputeService {
         this.scheduleAiService = scheduleAiService;
         this.tripLock = tripLock;
         this.tripPermissionService = tripPermissionService;
+        this.realtime = realtime;
+        this.generationState = generationState;
         this.tx = new TransactionTemplate(txManager);
         this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -120,7 +128,9 @@ public class ScheduleComputeService {
     public ScheduleResponse setAutoCompute(Long userId, Long scheduleId, boolean enabled) {
         Schedule schedule = requireAccess(userId, scheduleId);
         Long tripId = schedule.getTripId();
+        generationState.assertNotGenerating(tripId);   // AI 생성 중에는 구조 편집 불가
         if (!lock(tripId)) throw busy();
+        boolean saved = false;
         try {
             tx.executeWithoutResult(s -> {
                 Schedule sch = scheduleRepository.findById(scheduleId)
@@ -133,9 +143,12 @@ public class ScheduleComputeService {
                 }
                 sch.setAutoCompute(enabled);
             });
+            saved = true;
             if (enabled) compute(scheduleId);
         } finally {
             tripLock.unlock(tripId);
+            // 계산이 실패해도 이미 저장된 변경은 다른 멤버에게 알린다
+            if (saved) realtime.schedulesChanged(tripId, TripChangeAction.DAY_AUTO_COMPUTE_CHANGED, List.of(scheduleId), null);
         }
         return read(scheduleId);
     }
@@ -147,6 +160,7 @@ public class ScheduleComputeService {
      */
     public ScheduleResponse updateSettings(Long userId, Long scheduleId, ScheduleSettingsRequest request) {
         Schedule schedule = requireAccess(userId, scheduleId);
+        generationState.assertNotGenerating(schedule.getTripId());   // AI 생성 중에는 구조 편집 불가
         String start = request.getStartTime();
         String end = request.getEndTime();
         String mode = request.getTransportMode();
@@ -163,6 +177,7 @@ public class ScheduleComputeService {
 
         Long tripId = schedule.getTripId();
         if (!lock(tripId)) throw busy();
+        boolean saved = false;
         try {
             Settings cur = resolveSettings(schedule);
             assertFits(schedule,
@@ -173,17 +188,24 @@ public class ScheduleComputeService {
             tx.executeWithoutResult(s -> scheduleRepository.findById(scheduleId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND))
                     .updateSettings(start, end, mode));
+            saved = true;
             recomputeLocked(scheduleId);
         } finally {
             tripLock.unlock(tripId);
+            if (saved) realtime.schedulesChanged(tripId, TripChangeAction.DAY_SETTINGS_CHANGED, List.of(scheduleId), null);
         }
         return read(scheduleId);
     }
 
     /** 지금 상태로 다시 계산 (자동 계산이 꺼진 날은 아무것도 하지 않는다) */
     public ScheduleResponse recomputeNow(Long userId, Long scheduleId) {
-        requireAccess(userId, scheduleId);
+        Schedule schedule = requireAccess(userId, scheduleId);
+        generationState.assertNotGenerating(schedule.getTripId());   // AI 생성 중에는 구조 편집 불가
         recompute(scheduleId, false);
+        // 자동 계산이 꺼진 날은 아무것도 바뀌지 않으므로 알리지 않는다
+        if (schedule.isAutoComputeOn()) {
+            realtime.schedulesChanged(schedule.getTripId(), TripChangeAction.DAY_RECOMPUTED, List.of(scheduleId), null);
+        }
         return read(scheduleId);
     }
 
@@ -197,6 +219,7 @@ public class ScheduleComputeService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
         Long scheduleId = found.getScheduleId();
         Schedule schedule = requireAccess(userId, scheduleId);
+        generationState.assertNotGenerating(schedule.getTripId());   // AI 생성 중에는 구조 편집 불가
 
         Integer stay = request.getStayMinutes();
         String pin = request.getPinnedTime();
@@ -211,6 +234,7 @@ public class ScheduleComputeService {
 
         Long tripId = schedule.getTripId();
         if (!lock(tripId)) throw busy();
+        boolean saved = false;
         try {
             List<Map<String, Object>> proposed = new ArrayList<>();
             for (ScheduleItem it : sortedItems(scheduleId)) {
@@ -227,9 +251,11 @@ public class ScheduleComputeService {
             tx.executeWithoutResult(s -> scheduleItemRepository.findById(itemId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND))
                     .updatePlan(stay != null, stay, pin != null, (pin == null || pin.isEmpty()) ? null : pin));
+            saved = true;
             recomputeLocked(scheduleId);
         } finally {
             tripLock.unlock(tripId);
+            if (saved) realtime.schedulesChanged(tripId, TripChangeAction.ITEM_PLAN_CHANGED, List.of(scheduleId), found.getTitle());
         }
         return read(scheduleId);
     }
@@ -243,6 +269,7 @@ public class ScheduleComputeService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
         Long scheduleId = found.getScheduleId();
         Schedule schedule = requireAccess(userId, scheduleId);
+        generationState.assertNotGenerating(schedule.getTripId());   // AI 생성 중에는 구조 편집 불가
 
         if (found.getCategory() != null && ANCHOR_CATEGORIES.contains(found.getCategory())) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "숙소·출발지는 다른 장소로 바꿀 수 없어요.");
@@ -276,6 +303,7 @@ public class ScheduleComputeService {
 
         Long tripId = schedule.getTripId();
         if (!lock(tripId)) throw busy();
+        boolean saved = false;
         try {
             tx.executeWithoutResult(s -> {
                 List<ScheduleItem> items = sortedItems(scheduleId);
@@ -286,9 +314,11 @@ public class ScheduleComputeService {
                     if (i > 0) items.get(i - 1).clearTravel();
                 }
             });
+            saved = true;
             recomputeLocked(scheduleId);
         } finally {
             tripLock.unlock(tripId);
+            if (saved) realtime.schedulesChanged(tripId, TripChangeAction.ITEM_PLACE_REPLACED, List.of(scheduleId), title);
         }
         return read(scheduleId);
     }

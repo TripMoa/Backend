@@ -9,6 +9,8 @@ import com.tripmoa.schedule.event.ScheduleChangedEvent;
 import com.tripmoa.schedule.event.ScheduleItemDeletedEvent;
 import com.tripmoa.schedule.repository.ScheduleItemRepository;
 import com.tripmoa.schedule.repository.ScheduleRepository;
+import com.tripmoa.trip.realtime.TripChangeAction;
+import com.tripmoa.trip.realtime.TripRealtimePublisher;
 import com.tripmoa.trip.service.TripPermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,6 +36,8 @@ public class ScheduleItemService {
     private final ScheduleAiService scheduleAiService;
     private final ScheduleComputeService scheduleComputeService;
     private final TransactionTemplate transactionTemplate;
+    private final TripRealtimePublisher realtime;
+    private final ScheduleGenerationState generationState;
 
     // 노드 추가
     // 종료 시각 초과 검사(checkAdd)가 AI 서버를 부르므로(최대 60초) 트랜잭션 밖에서 먼저 확인하고,
@@ -47,11 +51,12 @@ public class ScheduleItemService {
         Schedule schedule = scheduleRepository.findById(request.getScheduleId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
         tripPermissionService.assertOwnerOrMember(schedule.getTripId(), userId);
+        generationState.assertNotGenerating(schedule.getTripId());   // AI 생성 중에는 구조 편집 불가
 
         // 자동 계산이 켜진 날은 종료 시각을 넘기게 되는 추가를 거절
         scheduleComputeService.checkAdd(schedule, request.getTitle(), request.getCategory(), request.getLat(), request.getLng());
 
-        return transactionTemplate.execute(status -> {
+        ScheduleItemResponse result = transactionTemplate.execute(status -> {
             //해당 day의 현재 마지막 orderIndex 계산 (검사 뒤 값이므로 트랜잭션 안에서 다시 조회)
             List<ScheduleItem> existing = scheduleItemRepository.findAllByScheduleId(request.getScheduleId());
 
@@ -75,15 +80,24 @@ public class ScheduleItemService {
             eventPublisher.publishEvent(new ScheduleChangedEvent(request.getScheduleId()));
             return created;
         });
+
+        // 커밋과 자동 재계산이 모두 끝난 뒤에 다른 멤버에게 알린다
+        realtime.schedulesChanged(schedule.getTripId(), TripChangeAction.ITEM_ADDED,
+                List.of(request.getScheduleId()), result == null ? null : result.getTitle());
+        return result;
     }
 
     // 노드 수정
     @Transactional
     public ScheduleItemResponse update(Long userId, Long itemId, ScheduleItemUpdateRequest request) {
         ScheduleItem item = getItemOr404(itemId);
-        tripPermissionService.assertOwnerOrMember(getTripId(item), userId);
+        Long tripId = getTripId(item);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+        generationState.assertNotGenerating(tripId);   // AI 생성 중에는 구조 편집 불가
 
         item.update(request.getTime(), request.getTitle(), request.getDescription());
+        // 열린 트랜잭션 안이라 알림은 커밋 뒤로 미뤄진다
+        realtime.schedulesChanged(tripId, TripChangeAction.ITEM_UPDATED, List.of(item.getScheduleId()), item.getTitle());
         return toResponse(item);
     }
 
@@ -93,25 +107,39 @@ public class ScheduleItemService {
     @Transactional
     public ScheduleItemResponse updateMemo(Long userId, Long itemId, ScheduleItemMemoRequest request) {
         ScheduleItem item = getItemOr404(itemId);
-        tripPermissionService.assertOwnerOrMember(getTripId(item), userId);
+        Long tripId = getTripId(item);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
 
         String memo = request.getMemo() == null ? "" : request.getMemo().strip();
         if (memo.length() > MAX_MEMO) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "메모는 " + MAX_MEMO + "자까지 쓸 수 있어요.");
         }
         item.updateMemo(memo.isEmpty() ? null : memo);
+        // 열린 트랜잭션 안이라 알림은 커밋 뒤로 미뤄진다
+        realtime.schedulesChanged(tripId, TripChangeAction.ITEM_MEMO_CHANGED, List.of(item.getScheduleId()), item.getTitle());
         return toResponse(item);
     }
 
     // 노드 삭제
-    @Transactional
+    // 삭제 뒤 자동 재계산(커밋 후 리스너)까지 끝난 다음에 알려야 하므로, 다른 쓰기 경로처럼 트랜잭션을 직접 열고
+    // 그 밖에서 알린다 (@Transactional 이면 커밋·재계산이 메서드가 끝난 뒤에 일어나 알림이 먼저 나갈 수 있다)
     public void delete(Long userId, Long itemId) {
-        ScheduleItem item = getItemOr404(itemId);
-        tripPermissionService.assertOwnerOrMember(getTripId(item), userId);
+        ScheduleItem found = getItemOr404(itemId);
+        Long tripId = getTripId(found);
+        tripPermissionService.assertOwnerOrMember(tripId, userId);
+        generationState.assertNotGenerating(tripId);   // AI 생성 중에는 구조 편집 불가
+        Long scheduleId = found.getScheduleId();
+        String title = found.getTitle();
 
-        scheduleItemRepository.delete(item);
-        eventPublisher.publishEvent(new ScheduleItemDeletedEvent(itemId));
-        eventPublisher.publishEvent(new ScheduleChangedEvent(item.getScheduleId()));
+        transactionTemplate.executeWithoutResult(status -> {
+            ScheduleItem item = scheduleItemRepository.findById(itemId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+            scheduleItemRepository.delete(item);
+            eventPublisher.publishEvent(new ScheduleItemDeletedEvent(itemId));
+            eventPublisher.publishEvent(new ScheduleChangedEvent(item.getScheduleId()));
+        });
+
+        realtime.schedulesChanged(tripId, TripChangeAction.ITEM_DELETED, List.of(scheduleId), title);
     }
 
     // 순서 변경 — itemIds 순서를 앞에 두고, 목록에 없는 노드는 원래 상대 순서대로 뒤에 붙인 뒤
@@ -151,6 +179,7 @@ public class ScheduleItemService {
 
         Schedule daySchedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        generationState.assertNotGenerating(daySchedule.getTripId());   // AI 생성 중에는 구조 편집 불가 (엔진 호출 전에 거절)
         scheduleComputeService.checkOrder(daySchedule, ordered);
 
         Long finalScheduleId = scheduleId;
@@ -163,6 +192,8 @@ public class ScheduleItemService {
             }
             eventPublisher.publishEvent(new ScheduleChangedEvent(finalScheduleId));
         });
+
+        realtime.schedulesChanged(daySchedule.getTripId(), TripChangeAction.ITEMS_REORDERED, List.of(finalScheduleId), null);
     }
 
     // 다른 날로 이동 (대상 day도 같은 트립 소속인지 검증)
@@ -175,6 +206,7 @@ public class ScheduleItemService {
         ScheduleItem item = getItemOr404(itemId);
         Long tripId = getTripId(item);
         tripPermissionService.assertOwnerOrMember(tripId, userId);
+        generationState.assertNotGenerating(tripId);   // AI 생성 중에는 구조 편집 불가
 
         Schedule targetSchedule = scheduleRepository.findById(request.getTargetScheduleId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -188,7 +220,8 @@ public class ScheduleItemService {
 
         Long sourceScheduleId = item.getScheduleId();
         Long targetScheduleId = request.getTargetScheduleId();
-        return transactionTemplate.execute(status -> {
+        String movedTitle = item.getTitle();
+        ScheduleItemResponse moved = transactionTemplate.execute(status -> {
             ScheduleItem fresh = scheduleItemRepository.findById(itemId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
@@ -205,6 +238,10 @@ public class ScheduleItemService {
 
             return toResponse(fresh);
         });
+
+        realtime.schedulesChanged(tripId, TripChangeAction.ITEM_MOVED,
+                List.of(sourceScheduleId, targetScheduleId), movedTitle);
+        return moved;
     }
 
     /**
