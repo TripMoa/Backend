@@ -2,7 +2,6 @@ package com.tripmoa.story.controller;
 
 import com.tripmoa.story.dto.draft.DraftResponse;
 import com.tripmoa.story.dto.draft.DraftUpdateRequest;
-import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.service.DraftService;
 import com.tripmoa.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -40,9 +39,12 @@ public class DraftController {
     }
 
     // 임시저장 생성 (POST /api/drafts)
+    // 프론트는 생성·수정 모두 같은 모양(images는 "a.jpg,b.jpg" 문자열)으로 보내므로
+    // 수정과 같은 DraftUpdateRequest로 받는다.
+    // (예전에는 StoryRequest(images가 List)로 받아서, 사진이 있으면 400 "올바른 JSON 형식이 아니에요"가 났음)
     @PostMapping
     public ResponseEntity<DraftResponse> createDraft(
-            @RequestBody StoryRequest request,
+            @RequestBody DraftUpdateRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();

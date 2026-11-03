@@ -3,6 +3,7 @@ package com.tripmoa.story.controller;
 import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.dto.post.StoryResponse;
 import com.tripmoa.story.dto.post.StoryUpdateRequest;
+import com.tripmoa.story.dto.post.StoryExpenseSummary;
 import com.tripmoa.story.service.StoryService;
 import com.tripmoa.story.service.StoryLikeService;
 import com.tripmoa.security.principal.CustomUserDetails;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.util.List;
 
@@ -52,6 +55,31 @@ public class StoryController {
         Long userId = userDetails.getUser().getId();
         boolean exists = storyService.existsReviewByTripAndAuthor(tripId, userId);
         return ResponseEntity.ok(exists);
+    }
+
+    // 후기 작성 페이지 동선 미리보기 (GET /api/stories/route-preview?tripId={tripId})
+    @GetMapping("/route-preview")
+    public ResponseEntity<Map<String, String>> getRoutePreview(
+            @RequestParam Long tripId
+    ) {
+        Map<String, String> body = new HashMap<>();
+        body.put("route", storyService.getRoutePreview(tripId));
+        return ResponseEntity.ok(body);
+    }
+
+    // 후기 작성 페이지 경비 미리보기 (GET /api/stories/expense-preview?tripId={tripId})
+    // TRAVEL LOG 지출을 카테고리별로 합산한 값. 해당 여행 멤버가 아니면 403
+    @GetMapping("/expense-preview")
+    public ResponseEntity<StoryExpenseSummary> getExpensePreview(
+            @RequestParam Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+        StoryExpenseSummary summary = storyService.getExpensePreview(tripId, userId);
+        if (summary == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(summary);
     }
 
     // 여행기 상세 조회 (GET /api/stories/{id})

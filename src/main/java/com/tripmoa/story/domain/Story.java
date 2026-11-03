@@ -74,6 +74,15 @@ public class Story {
     private Integer attraction;
     private Integer shopping;
 
+    // 기타 (TRAVEL LOG 의 ETC)
+    private Integer etc;
+
+    // 경비를 가져올 때의 여행 인원 (null 이면 직접 입력하던 예전 후기)
+    private Integer memberCount;
+
+    // 경비 공개 여부 (null 은 예전 글이라 공개로 본다)
+    private Boolean showExpense = true;
+
     // 좋아요 수
     private Integer likes = 0;
 
@@ -89,6 +98,10 @@ public class Story {
     // 게시글 타입 (자유글 / 여행 후기)
     @Enumerated(EnumType.STRING)
     private StoryType type;
+
+    // 계획한 동선 스냅샷
+    @Column(columnDefinition = "LONGTEXT")
+    private String route;
 
     // 여행기 생성
     public Story(User author, Trip trip, String title, String description, String imageUrl,
@@ -152,6 +165,35 @@ public class Story {
         }
     }
 
+    // 동선 스냅샷 저장
+    public void updateRoute(String route) {
+        this.route = route;
+    }
+
+    // TRAVEL LOG 경비 요약 저장
+    public void updateExpenseSnapshot(Integer transportation, Integer accommodation, Integer food,
+                                      Integer attraction, Integer shopping, Integer etc, Integer memberCount) {
+        this.transportation = transportation;
+        this.accommodation = accommodation;
+        this.food = food;
+        this.attraction = attraction;
+        this.shopping = shopping;
+        this.etc = etc;
+        this.memberCount = memberCount;
+    }
+
+    // 경비 공개/숨김 변경
+    public void updateShowExpense(Boolean showExpense) {
+        if (showExpense != null) {
+            this.showExpense = showExpense;
+        }
+    }
+
+    // 경비 공개 여부 (null 은 공개)
+    public boolean isExpenseVisible() {
+        return !Boolean.FALSE.equals(showExpense);
+    }
+
     // 공개/비공개 변경
     public void updateIsPublic(Boolean isPublic) {
         this.isPublic = isPublic;
@@ -170,6 +212,7 @@ public class Story {
         if (food != null) total += food;
         if (attraction != null) total += attraction;
         if (shopping != null) total += shopping;
+        if (etc != null) total += etc;
         return total;
     }
 }
