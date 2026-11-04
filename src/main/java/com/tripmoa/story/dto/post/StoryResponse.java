@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  - 여행기 정보와 작성자 정보, 경비 정보를 프론트로 전달 */
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class StoryResponse {
@@ -68,6 +68,9 @@ public class StoryResponse {
     // 게시글 타입 (자유글 / 여행 후기)
     private String type;
 
+    // 계획한 동선 스냅샷 (JSON 문자열, 없으면 null)
+    private String route;
+
     // 로그인 사용자의 좋아요 여부
     @JsonProperty("isLiked")
     private Boolean isLiked;
@@ -75,6 +78,15 @@ public class StoryResponse {
     // 공개 여부
     @JsonProperty("isPublic")
     private Boolean isPublic;
+
+    // 경비 공개 여부
+    private Boolean showExpense;
+
+    // 여행 인원 (리뷰 작성자 옆 "외 n명" 표시용, 예전 글은 null)
+    private Integer memberCount;
+
+    // 로그인 사용자가 수정·삭제할 수 있는지 (작성자 또는 그 여행 멤버). 목록 API 등 계산하지 않은 곳은 null
+    private Boolean canEdit;
 
     /* 작성자 정보 DTO */
     @Getter
@@ -120,8 +132,14 @@ public class StoryResponse {
         // 관광/입장료
         private Integer attraction;
 
-        // 쇼핑/기타
+        // 쇼핑
         private Integer shopping;
+
+        // 기타
+        private Integer etc;
+
+        // 여행 인원 (null 이면 직접 입력하던 예전 후기)
+        private Integer memberCount;
 
         // 총 여행 경비
         private Integer total;
@@ -159,9 +177,12 @@ public class StoryResponse {
 
         ExpensesInfo expenses = null;
 
-        if (story.getTransportation() != null || story.getAccommodation() != null ||
+        // 경비를 숨긴 글은 경비를 아예 보내지 않는다
+        if (story.isExpenseVisible() && (
+                story.getTransportation() != null || story.getAccommodation() != null ||
                 story.getFood() != null || story.getAttraction() != null ||
-                story.getShopping() != null) {
+                story.getShopping() != null || story.getEtc() != null ||
+                story.getMemberCount() != null)) {
 
             expenses = ExpensesInfo.builder()
                     .transportation(story.getTransportation())
@@ -169,6 +190,8 @@ public class StoryResponse {
                     .food(story.getFood())
                     .attraction(story.getAttraction())
                     .shopping(story.getShopping())
+                    .etc(story.getEtc())
+                    .memberCount(story.getMemberCount())
                     .total(story.getTotalExpense())
                     .build();
         }
@@ -192,7 +215,10 @@ public class StoryResponse {
                 .type(story.getType() != null ? story.getType().name() : "FREE")
                 .isLiked(isLiked)
                 .isPublic(story.getIsPublic())
+                .showExpense(story.isExpenseVisible())
+                .memberCount(story.getMemberCount())
                 .tripId(story.getTrip() != null ? story.getTrip().getId() : null)
+                .route(story.getRoute())
                 .build();
     }
 
