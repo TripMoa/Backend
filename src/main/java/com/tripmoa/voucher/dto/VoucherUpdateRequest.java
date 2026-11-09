@@ -14,6 +14,9 @@ public record VoucherUpdateRequest(
         String title,
 
         @Size(max = 255)
-        String description
+        String description,
+
+        // 연결할 일정 항목 id (선택, null이면 연결 해제) — 같은 트립 소속이어야 함
+        Long scheduleItemId
 ) {
 }

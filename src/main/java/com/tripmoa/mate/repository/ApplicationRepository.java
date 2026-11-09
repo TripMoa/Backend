@@ -1,6 +1,7 @@
 package com.tripmoa.mate.repository;
 
 import com.tripmoa.mate.domain.MateApplication;
+import com.tripmoa.mate.enums.ApplyStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,4 +24,5 @@ public interface ApplicationRepository extends JpaRepository<MateApplication, Lo
     List<MateApplication> findByApplicantId(Long applicantId);
 
     boolean existsByMatePostIdAndApplicantId(Long postId, Long applicantId);
+    boolean existsByMatePostIdAndApplicantIdAndStatus(Long matePostId, Long applicantId, ApplyStatus status);
 }

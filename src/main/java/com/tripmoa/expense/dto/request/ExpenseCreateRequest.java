@@ -42,6 +42,9 @@ public record ExpenseCreateRequest(
         SplitMode splitMode,
 
         @Valid
-        List<ExpenseSplitCreateRequest> splits
+        List<ExpenseSplitCreateRequest> splits,
+
+        // 연결할 일정 항목 id (선택) — 같은 트립 소속이어야 함
+        Long scheduleItemId
 
 ) {}

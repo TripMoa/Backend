@@ -93,6 +93,11 @@ public class Expense {
     @Column(name = "split_mode", nullable = false, length = 10)
     private SplitMode splitMode = SplitMode.EQUAL;
 
+    // 연결된 일정 항목 (nullable — 미연결 가능)
+    // ScheduleItem은 JPA 연관관계 없이 raw id로만 참조되는 모듈이라 동일하게 raw id로 맞춤
+    @Column(name = "schedule_item_id")
+    private Long scheduleItemId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -141,7 +146,8 @@ public class Expense {
             boolean shared,
             String receiptUrl,
             String receiptFileName,
-            SplitMode splitMode
+            SplitMode splitMode,
+            Long scheduleItemId
     ) {
         this.payerMember = payerMember;
         this.autoIncludePayer = autoIncludePayer;
@@ -155,5 +161,6 @@ public class Expense {
         this.receiptUrl = receiptUrl;
         this.receiptFileName = receiptFileName;
         this.splitMode = splitMode;
+        this.scheduleItemId = scheduleItemId;
     }
 }

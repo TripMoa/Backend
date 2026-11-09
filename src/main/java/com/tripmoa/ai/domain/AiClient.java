@@ -2,6 +2,7 @@ package com.tripmoa.ai.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tripmoa.ai.dto.AiEstimateResponse;
 import com.tripmoa.ai.dto.AiScheduleRequest;
 import com.tripmoa.ai.dto.AiScheduleResponse;
 import com.tripmoa.expense.dto.request.OcrLlmRequest;
@@ -51,6 +52,45 @@ public class AiClient {
         }
     }
 
+    // AI 일정 생성 전 예상 (몇 곳이 들어가고 빠질지) — 외부 API를 안 부르는 가벼운 계산
+    public AiEstimateResponse estimate(AiScheduleRequest request) {
+        String url = aiServerUrl + "/schedule/estimate";
+        try {
+            return restTemplate.postForObject(url, request, AiEstimateResponse.class);
+        } catch (HttpStatusCodeException e) {
+            throw new ResponseStatusException(e.getStatusCode(), extractDetail(e), e);
+        } catch (ResourceAccessException e) {
+            throw toTimeoutOrUnavailable(e);
+        }
+    }
+
+    // 구간 실시간 대중교통 경로 (ODsay) — 응답은 저장하지 않고 그대로 프론트에 넘긴다
+    // (응답은 Map으로 받는다 — 이 프로젝트의 RestTemplate은 Jackson 3 변환기라 Jackson 2의 JsonNode 타입을 읽지 못한다)
+    @SuppressWarnings("unchecked")
+    public java.util.Map<String, Object> transit(java.util.Map<String, Object> body) {
+        String url = aiServerUrl + "/schedule/transit";
+        try {
+            return restTemplate.postForObject(url, body, java.util.Map.class);
+        } catch (HttpStatusCodeException e) {
+            throw new ResponseStatusException(e.getStatusCode(), extractDetail(e), e);
+        } catch (ResourceAccessException e) {
+            throw toTimeoutOrUnavailable(e);
+        }
+    }
+
+    // 순서가 정해진 하루의 시각 재계산 (외부 API를 부르지 않는 순수 계산)
+    @SuppressWarnings("unchecked")
+    public java.util.Map<String, Object> recomputeDay(java.util.Map<String, Object> body) {
+        String url = aiServerUrl + "/schedule/recompute-day";
+        try {
+            return restTemplate.postForObject(url, body, java.util.Map.class);
+        } catch (HttpStatusCodeException e) {
+            throw new ResponseStatusException(e.getStatusCode(), extractDetail(e), e);
+        } catch (ResourceAccessException e) {
+            throw toTimeoutOrUnavailable(e);
+        }
+    }
+
     // 장소 검색 프록시
     public PlaceSearchResponse search(String query, int display) {
         // Spring이 @RequestParam으로 이미 디코딩한 query를 UriComponentsBuilder로 다시 인코딩
@@ -82,6 +122,11 @@ public class AiClient {
             JsonNode node = objectMapper.readTree(e.getResponseBodyAsString());
             JsonNode detail = node.get("detail");
             if (detail != null && detail.isTextual()) return detail.asText();
+            // Pydantic 검증 실패(422)는 detail이 [{"msg": "..."}] 배열 — 첫 번째 사유를 꺼내 쓴다
+            if (detail != null && detail.isArray() && !detail.isEmpty()) {
+                JsonNode msg = detail.get(0).get("msg");
+                if (msg != null && msg.isTextual()) return msg.asText();
+            }
         } catch (Exception parseError) {
             log.warn("AI 서버 에러 응답 파싱 실패: {}", e.getResponseBodyAsString());
         }

@@ -7,7 +7,11 @@ import com.tripmoa.chat.dto.ChatMessageResponse;
 import com.tripmoa.chat.dto.ChatRoomResponse;
 import com.tripmoa.chat.repository.ChatMessageRepository;
 import com.tripmoa.chat.repository.ChatRoomRepository;
+import com.tripmoa.global.exception.BusinessException;
+import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.mate.domain.MatePost;
+import com.tripmoa.mate.enums.ApplyStatus;
+import com.tripmoa.mate.repository.ApplicationRepository;
 import com.tripmoa.mate.repository.MateRepository;
 import com.tripmoa.user.entity.User;
 import com.tripmoa.user.repository.UserRepository;
@@ -32,6 +36,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final UnreadMessageCheck unreadMessageCheck;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationRepository applicationRepository;
 
      // 채팅방 생성 (메이트 신청 시 호출)
      // 이미 존재하면 기존 채팅방 반환
@@ -39,15 +44,25 @@ public class ChatService {
     @Transactional
     public ChatRoomResponse createChatRoom(Long matePostId, User requestUser, Long applicantId) {
         MatePost post = mateRepository.findById(matePostId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + matePostId));
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
 
         User author = post.getUser();
         User applicant = userRepository.findById(applicantId)
-                .orElseThrow(() -> new IllegalArgumentException("신청자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
         // 자기 자신에게 채팅 신청 방지
         if (author.getId().equals(applicant.getId())) {
-            throw new IllegalArgumentException("자기 자신에게 채팅을 신청 할 수 없습니다");
+            throw new BusinessException(ErrorCode.CANNOT_APPLY_OWN_POST);
+        }
+
+        if (!author.getId().equals(requestUser.getId()) && !applicantId.equals(requestUser.getId())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_CHAT_ACCESS);
+        }
+
+        if(!applicationRepository.existsByMatePostIdAndApplicantIdAndStatus(
+                matePostId, applicantId, ApplyStatus.APPROVED
+        )) {
+            throw new BusinessException(ErrorCode.APPLICATION_NOT_FOUND);
         }
 
         // 이미 존재하는 채팅방이면 그대로 반환

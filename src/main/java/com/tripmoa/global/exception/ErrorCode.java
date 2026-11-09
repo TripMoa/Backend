@@ -21,6 +21,9 @@ public enum ErrorCode {
     // 403 - 로그인은 했지만 권한이 없는 경우
     FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON_403_001", "권한이 없습니다."),
 
+    // 403 - 실시간(WebSocket/STOMP) 연결·구독·전송이 허용되지 않는 경우 (채팅·일정 등 모든 실시간 기능이 쓰는 공용 인터셉터용)
+    WEBSOCKET_FORBIDDEN(HttpStatus.FORBIDDEN, "WS_403_001", "실시간 연결 접근 권한이 없습니다."),
+
     // 404 - 리소스 자체가 존재하지 않는 경우
     NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_404_001", "대상을 찾을 수 없습니다."),
 
@@ -128,6 +131,9 @@ public enum ErrorCode {
     MATE_POST_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_014", "만료된 게시글에는 신청 할 수 없습니다"),
     MATE_POST_NOT_EXPIRED(HttpStatus.BAD_REQUEST, "MATE_400_015", "만료된 게시글의 신청서만 삭제할 수 있습니다"),
     PROFILE_INCOMPLETE(HttpStatus.BAD_REQUEST, "MATE_400_016", "프로필(나이, 성별)을 먼저 설정해주세요."),
+
+    // ====== Chat 도메인 ======
+    UNAUTHORIZED_CHAT_ACCESS(HttpStatus.FORBIDDEN, "CHAT_403_001", "채팅 접근 권한이 없습니다."),
 
     // ====== Story 도메인 ======
 

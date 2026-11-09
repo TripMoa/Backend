@@ -1,4 +1,4 @@
-package com.tripmoa.chat.config;
+package com.tripmoa.global.websocket;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +14,13 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    private final StompHandler stompHandler;
+    private final StompAuthInterceptor stompAuthInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // 구독 경로: /sub/chat/room/{roomId}
+        // 구독 경로: /sub/** (예: /sub/chat/room/{roomId})
         config.enableSimpleBroker("/sub");
-        // 발행 경로: /pub/chat/message
+        // 발행 경로: /pub/** (예: /pub/chat/message)
         config.setApplicationDestinationPrefixes("/pub");
     }
 
@@ -35,10 +35,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     /**
-     * STOMP 메시지 인터셉터 등록 (JWT 인증)
+     * STOMP 메시지 인터셉터 등록 (JWT 인증 + 구독 주소별 접근 규칙)
      */
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompHandler);
+        registration.interceptors(stompAuthInterceptor);
     }
 }

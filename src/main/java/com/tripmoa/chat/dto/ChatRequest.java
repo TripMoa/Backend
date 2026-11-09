@@ -14,6 +14,7 @@ public class ChatRequest {
         @NotNull(message = "게시글 ID는 필수입니다")
         private Long matePostId;
 
+        @NotNull(message = "신청자 ID는 필수입니다")
         private Long applicantId;
     }
 

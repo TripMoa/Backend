@@ -66,6 +66,8 @@ public class AiScheduleResponse {
         private Integer travel_minutes; //다음 장소까지 이동시간(분). ODsay 실측 값 또는 추정치
         private Integer travel_payment;  // 다음 장소까지 대중교통 요금(원). ODsay 실측값이 있을 때만 존재
         private Integer travel_transfer; // 다음 장소까지 환승 횟수. ODsay 실측값이 있을 때만 존재
+        private Integer stay_minutes;    // 머무는 시간(분) — 자동 시각 계산을 위해 저장
+        private String pinned_time;      // 사용자가 고정한 시각("HH:MM"), 없으면 null
     }
 
     @Getter
@@ -73,6 +75,6 @@ public class AiScheduleResponse {
         private String name;
         private String category;
         private int day;
-        private String reason; // "capacity" | "morning_cafe"
+        private String reason; // "capacity" | "over_time" | "meal_slot_limit" | "cafe_limit"
     }
 }

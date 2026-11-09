@@ -1,7 +1,6 @@
 package com.tripmoa.story.service;
 
 import com.tripmoa.story.domain.Draft;
-import com.tripmoa.story.dto.post.StoryRequest;
 import com.tripmoa.story.dto.draft.DraftResponse;
 import com.tripmoa.story.dto.draft.DraftUpdateRequest;
 import com.tripmoa.story.repository.DraftRepository;
@@ -49,32 +48,26 @@ public class DraftService {
     }
 
     // 드래프트 생성
+    // 수정(updateDraft)과 같은 값을 그대로 저장한다.
+    // (예전에는 태그·예산·경비를 null로 저장해서, 처음 임시저장한 글을 불러오면 그 값이 비어 있었음)
     @Transactional
-    public DraftResponse createDraft(StoryRequest request, Long authorId) {
+    public DraftResponse createDraft(DraftUpdateRequest request, Long authorId) {
 
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        String images = request.getImages() != null
-                ? String.join(",", request.getImages())
-                : null;
-
-        String tags = request.getTagIds() != null
-                ? request.getTagIds().toString()
-                : null;
 
         Draft draft = new Draft(
                 author,
                 request.getTitle(),
                 request.getDescription(),
                 request.getImageUrl(),
-                images,
-                tags,
+                request.getImages(),
+                request.getTags(),
                 request.getDestination(),
                 request.getDuration(),
                 request.getDepartureDate(),
-                null,
-                null
+                request.getBudget(),
+                request.getExpenses()
         );
 
         Draft saved = draftRepository.save(draft);

@@ -20,4 +20,9 @@ public class ScheduleItemResponse {
     private Integer travelMinutes; // 다음 장소까지 이동시간(분)
     private Integer travelPayment; // 다음 장소까지 대중교통 요금(원)
     private Integer travelTransfer; // 다음 장소까지 환승 횟수
+    private Integer stayMinutes;    // 머무는 시간(분), 예전 일정은 null
+    private String endTime;         // time + stayMinutes (stayMinutes가 없으면 null)
+    private String pinnedTime;      // 고정 시각, 없으면 null
+    private String memo;            // 멤버 공용 메모, 없으면 null
+    private java.util.List<ScheduleWarningResponse> warnings; // 이 노드에 대한 경고 (자동 계산이 켜진 날)
 }

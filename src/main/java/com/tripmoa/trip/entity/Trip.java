@@ -33,6 +33,9 @@ import java.util.UUID;
 @Builder
 public class Trip {
 
+    // 여행 하나에 함께할 수 있는 최대 인원 (소유자 포함). 여행 생성·링크 참여·소유자 추가가 모두 이 값을 쓴다.
+    public static final int MAX_MEMBERS = 10;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +56,11 @@ public class Trip {
 
     @Column(name = "invite_code", nullable = false, unique = true, length = 20)
     private String inviteCode;
+
+    // 링크 초대를 닫았는지 여부. 값이 없으면(null) 열려 있는 것으로 본다.
+    // not-null 컬럼을 ddl-auto=update로 추가하면 기존 행이 모두 "닫힘"이 될 수 있어서, 닫힘을 true로 표시하는 nullable 컬럼으로 둔다.
+    @Column(name = "invite_disabled")
+    private Boolean inviteDisabled;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
@@ -91,8 +99,25 @@ public class Trip {
     public void prePersist() {
         // 생성 시점에 고유 코드 자동 생성
         if (this.inviteCode == null) {
-            this.inviteCode = UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+            this.inviteCode = newInviteCode();
         }
+    }
+
+    public static String newInviteCode() {
+        return UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+    }
+
+    public boolean isInviteEnabled() {
+        return !Boolean.TRUE.equals(inviteDisabled);
+    }
+
+    public void changeInviteEnabled(boolean enabled) {
+        this.inviteDisabled = !enabled;
+    }
+
+    // 이전 초대 링크는 이 순간부터 무효가 된다
+    public void regenerateInviteCode(String newCode) {
+        this.inviteCode = newCode;
     }
 
     // 초대 링크를 반환하는 편의 메서드

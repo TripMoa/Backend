@@ -36,6 +36,9 @@ public class StoryUpdateRequest {
     // 공개 여부
     private Boolean isPublic;
 
+    // 경비 공개 여부
+    private Boolean showExpense;
+
     // 여행 경비 항목
     private Integer transportation;  // 교통비
     private Integer accommodation;   // 숙박비

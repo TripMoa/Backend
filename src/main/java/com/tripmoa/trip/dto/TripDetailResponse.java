@@ -18,6 +18,7 @@ public class TripDetailResponse {
     private String status;
     private String visibility;
     private String inviteCode;
+    private boolean inviteEnabled;
 
     private Long ownerUserId;
     private String ownerName;
@@ -33,6 +34,7 @@ public class TripDetailResponse {
                 .status(trip.getStatus().name())
                 .visibility(trip.getVisibility().name())
                 .inviteCode(trip.getInviteCode())
+                .inviteEnabled(trip.isInviteEnabled())
                 .ownerUserId(trip.getOwner().getId())
                 .ownerName(trip.getOwner().getName())
                 .members(members.stream()

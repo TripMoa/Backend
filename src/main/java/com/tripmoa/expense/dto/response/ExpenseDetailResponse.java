@@ -32,7 +32,9 @@ public record ExpenseDetailResponse(
         LocalDateTime paidAt,
         LocalDateTime createdAt,
 
-        List<ExpenseDetailSplitResponse> splits
+        List<ExpenseDetailSplitResponse> splits,
+
+        Long scheduleItemId
 ) {
     public static ExpenseDetailResponse from(Expense expense) {
         Long payerMemberId = expense.getPayerMember().getId();
@@ -58,7 +60,8 @@ public record ExpenseDetailResponse(
                 expense.getReceiptFileName(),
                 expense.getPaidAt(),
                 expense.getCreatedAt(),
-                splitResponses
+                splitResponses,
+                expense.getScheduleItemId()
         );
     }
 }

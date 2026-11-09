@@ -5,6 +5,7 @@ import com.tripmoa.trip.dto.*;
 import com.tripmoa.trip.enums.TripStatus;
 import com.tripmoa.trip.enums.TripVisibility;
 import com.tripmoa.trip.service.TripCommandService;
+import com.tripmoa.trip.service.TripInviteService;
 import com.tripmoa.trip.service.TripQueryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ public class TripController {
 
     private final TripQueryService tripQueryService;
     private final TripCommandService tripCommandService;
+    private final TripInviteService tripInviteService;
 
     // 내가 소유한 여행 목록 조회
     // 전체: /api/trips/my
@@ -99,6 +101,42 @@ public class TripController {
         return ResponseEntity.ok(
                 tripCommandService.updateTripVisibility(tripId, userId, request.getVisibility())
         );
+    }
+
+    // 멤버 추가 (소유자, 가입자를 바로 멤버로 등록)
+    @PostMapping("/{tripId}/members")
+    public ResponseEntity<TripDetailResponse> addTripMember(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody TripMemberAddRequest request
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(
+                tripInviteService.addMemberByOwner(tripId, userId, request.getUserId())
+        );
+    }
+
+    // 링크 초대 켜기/끄기 (소유자)
+    @PatchMapping("/{tripId}/invite")
+    public ResponseEntity<TripDetailResponse> updateInviteEnabled(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody TripInviteSettingRequest request
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(
+                tripInviteService.updateInviteEnabled(tripId, userId, request.getEnabled())
+        );
+    }
+
+    // 초대 코드 다시 만들기 (소유자, 이전 링크 무효)
+    @PostMapping("/{tripId}/invite/regenerate")
+    public ResponseEntity<TripDetailResponse> regenerateInviteCode(
+            @PathVariable Long tripId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(tripInviteService.regenerateInviteCode(tripId, userId));
     }
 
     // 여행 멤버 닉네임 수정 (본인만 가능)

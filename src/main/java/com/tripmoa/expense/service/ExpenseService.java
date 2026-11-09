@@ -18,6 +18,10 @@ import com.tripmoa.global.exception.ErrorCode;
 import com.tripmoa.global.file.FileDirectories;
 import com.tripmoa.global.file.FileStorageService;
 import com.tripmoa.global.file.StoredFileInfo;
+import com.tripmoa.schedule.domain.Schedule;
+import com.tripmoa.schedule.domain.ScheduleItem;
+import com.tripmoa.schedule.repository.ScheduleItemRepository;
+import com.tripmoa.schedule.repository.ScheduleRepository;
 import com.tripmoa.trip.entity.Trip;
 import com.tripmoa.trip.entity.TripMember;
 import com.tripmoa.trip.repository.TripMemberRepository;
@@ -47,12 +51,16 @@ public class ExpenseService {
     private final TripPermissionService tripPermissionService;
     private final SettlementPreviewService settlementPreviewService;
     private final FileStorageService fileStorageService;
+    private final ScheduleItemRepository scheduleItemRepository;
+    private final ScheduleRepository scheduleRepository;
 
     @Transactional(readOnly = true)
-    public List<ExpenseDetailResponse> getExpenses(Long tripId, Long userId) {
+    public List<ExpenseDetailResponse> getExpenses(Long tripId, Long userId, Long scheduleItemId) {
         tripPermissionService.assertOwnerOrMember(tripId, userId);
 
-        List<Expense> expenses = expenseRepository.findAllWithDetailsByTripId(tripId);
+        List<Expense> expenses = scheduleItemId != null
+                ? expenseRepository.findAllWithDetailsByTripIdAndScheduleItemId(tripId, scheduleItemId)
+                : expenseRepository.findAllWithDetailsByTripId(tripId);
 
         return expenses.stream()
                 .map(ExpenseDetailResponse::from)
@@ -84,6 +92,7 @@ public class ExpenseService {
         TripMember payer = getValidPayer(tripId, req.payerMemberId());
         LocalDateTime paidAt = parsePaidAt(req.paidAt());
         List<ExpenseSplitCreateRequest> finalSplits = resolveFinalSplits(tripId, userId, req, payer);
+        Long scheduleItemId = resolveScheduleItemId(tripId, req.scheduleItemId());
 
         StoredFileInfo storedFile = null;
         if (receiptImage != null && !receiptImage.isEmpty()) {
@@ -105,6 +114,7 @@ public class ExpenseService {
                 .receiptUrl(storedFile == null ? null : storedFile.fileUrl())
                 .receiptFileName(storedFile == null ? null : storedFile.originalFileName())
                 .splitMode(req.splitMode())
+                .scheduleItemId(scheduleItemId)
                 .build();
 
         for (ExpenseSplit split : buildSplits(expense, finalSplits)) {
@@ -131,6 +141,7 @@ public class ExpenseService {
         TripMember payer = getValidPayer(tripId, req.payerMemberId());
         LocalDateTime paidAt = parsePaidAt(req.paidAt());
         List<ExpenseSplitCreateRequest> finalSplits = resolveFinalSplits(tripId, userId, req, payer);
+        Long scheduleItemId = resolveScheduleItemId(tripId, req.scheduleItemId());
 
         String receiptUrl = expense.getReceiptUrl();
         String receiptFileName = expense.getReceiptFileName();
@@ -157,7 +168,8 @@ public class ExpenseService {
                 req.isShared(),
                 receiptUrl,
                 receiptFileName,
-                req.splitMode()
+                req.splitMode(),
+                scheduleItemId
         );
 
         expense.clearSplits();
@@ -185,6 +197,25 @@ public class ExpenseService {
         }
 
         expenseRepository.delete(expense);
+    }
+
+    // scheduleItemId가 오면 해당 일정 항목이 실제로 존재하고, 같은 트립 소속인지 검증
+    private Long resolveScheduleItemId(Long tripId, Long scheduleItemId) {
+        if (scheduleItemId == null) {
+            return null;
+        }
+
+        ScheduleItem item = scheduleItemRepository.findById(scheduleItemId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "연결하려는 일정 항목을 찾을 수 없습니다."));
+
+        Schedule schedule = scheduleRepository.findById(item.getScheduleId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "연결하려는 일정 항목을 찾을 수 없습니다."));
+
+        if (!schedule.getTripId().equals(tripId)) {
+            throw new BusinessException(ErrorCode.TRIP_FORBIDDEN, "다른 여행의 일정 항목에는 연결할 수 없습니다.");
+        }
+
+        return scheduleItemId;
     }
 
     private void validateSharedByPaymentMode(SettlementSetting setting, boolean isShared) {

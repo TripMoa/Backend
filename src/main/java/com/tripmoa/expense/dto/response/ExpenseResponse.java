@@ -27,7 +27,9 @@ public record ExpenseResponse(
         String receiptFileName,
 
         LocalDateTime paidAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+
+        Long scheduleItemId
 
 ) {
     public static ExpenseResponse from(Expense e) {
@@ -45,7 +47,8 @@ public record ExpenseResponse(
                 e.getReceiptUrl(),
                 e.getReceiptFileName(),
                 e.getPaidAt(),
-                e.getCreatedAt()
+                e.getCreatedAt(),
+                e.getScheduleItemId()
         );
     }
 }

@@ -32,5 +32,8 @@ public class StoryRequest {
 
     private Boolean isPublic = true;
 
+    // 경비 공개 여부 (기본 공개)
+    private Boolean showExpense = true;
+
     private Long tripId;
 }
